@@ -1,0 +1,213 @@
+//package com.InfraDesk.entity;
+//
+//import jakarta.persistence.*;
+//import jakarta.persistence.Id;
+//import lombok.*;
+//import org.hibernate.annotations.SQLDelete;
+//import org.hibernate.annotations.Where;
+//import org.springframework.data.annotation.*;
+//
+//import java.time.LocalDateTime;
+//import java.util.ArrayList;
+//import java.util.List;
+//import java.util.UUID;
+//
+//@Entity
+//@Table(
+//        name = "locations",
+//        uniqueConstraints = @UniqueConstraint(columnNames = {"name", "site_id", "company_id"}),
+//        indexes = {
+//                @Index(name = "idx_location_company_site", columnList = "company_id, site_id"),
+//                @Index(name = "idx_location_public_id", columnList = "public_id")
+//        }
+//)
+//@Data
+//@NoArgsConstructor
+//@AllArgsConstructor
+//@Builder
+//@SQLDelete(sql = "UPDATE locations SET is_deleted = true WHERE id = ?")
+////@Where(clause = "is_deleted = false")
+//@EntityListeners(Location.AuditListener.class)
+//public class Location {
+//
+//    @Id
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    private Long id;
+//
+//    // Public UUID for external reference
+//    @Column(name = "public_id", nullable = false, unique = true, updatable = false, length = 36)
+//    private String publicId;
+//
+//    // Owning Company (Multi-tenant boundary)
+//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+//    @JoinColumn(name = "company_id", nullable = false)
+//    private Company company;
+//
+//    // Primary Site
+//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+//    @JoinColumn(name = "site_id", nullable = false)
+//    private Site site;
+//
+//    @Column(nullable = false, length = 100)
+//    private String name; // e.g., "Ground Floor", "IT Room"
+//
+//    @Column(length = 255)
+//    private String description;
+//
+//    // Optional cross-links with other sites
+//    @OneToMany(mappedBy = "location", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<SiteLocationAssignment> assignedSites = new ArrayList<>();
+//
+//    @Column(name = "is_active", nullable = false)
+//    private Boolean isActive = Boolean.TRUE;
+//
+//    @Column(name = "is_deleted", nullable = false)
+//    private Boolean isDeleted = Boolean.FALSE;
+//
+//    @CreatedBy
+//    @Column(name = "created_by", length = 100, updatable = false)
+//    private String createdBy;
+//
+//    @CreatedDate
+//    @Column(name = "created_at", nullable = false, updatable = false)
+//    private LocalDateTime createdAt;
+//
+//    @LastModifiedBy
+//    @Column(name = "updated_by", length = 100)
+//    private String updatedBy;
+//
+//    @LastModifiedDate
+//    @Column(name = "updated_at")
+//    private LocalDateTime updatedAt;
+//
+//    @PrePersist
+//    public void prePersist() {
+//        createdAt = LocalDateTime.now();
+//        publicId = (publicId == null) ? UUID.randomUUID().toString() : publicId;
+//        isActive = (isActive == null) ? Boolean.TRUE : isActive;
+//        isDeleted = (isDeleted == null) ? Boolean.FALSE : isDeleted;
+//    }
+//
+//    @PreUpdate
+//    public void preUpdate() {
+//        updatedAt = LocalDateTime.now();
+//    }
+//
+//    public static class AuditListener {
+//        @PrePersist
+//        public void setCreatedAtAndPublicId(Location loc) {
+//            loc.prePersist();
+//        }
+//
+//        @PreUpdate
+//        public void setUpdatedAt(Location loc) {
+//            loc.preUpdate();
+//        }
+//    }
+//}
+
+
+
+package com.InfraDesk.entity;
+
+import jakarta.persistence.*;
+import jakarta.persistence.Id;
+import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+import org.springframework.data.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Entity
+@Table(
+        name = "locations",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"name", "site_id", "company_id"}),
+        indexes = {
+                @Index(name = "idx_location_company_site", columnList = "company_id, site_id"),
+                @Index(name = "idx_location_public_id", columnList = "public_id")
+        }
+)
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@SQLDelete(sql = "UPDATE locations SET is_deleted = true WHERE id = ?")
+@EntityListeners(Location.AuditListener.class)
+public class Location {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false, length = 36)
+    private String publicId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
+
+    // Primary Site
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "site_id", nullable = false)
+    private Site site;
+
+    @Column(nullable = false, length = 100)
+    private String name;
+
+    @Column(length = 255)
+    private String description;
+
+    @OneToMany(mappedBy = "location", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SiteLocationAssignment> assignedSites = new ArrayList<>();
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = Boolean.TRUE;
+
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = Boolean.FALSE;
+
+    @CreatedBy
+    @Column(name = "created_by", length = 100, updatable = false)
+    private String createdBy;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedBy
+    @Column(name = "updated_by", length = 100)
+    private String updatedBy;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+        publicId = (publicId == null) ? UUID.randomUUID().toString() : publicId;
+        isActive = (isActive == null) ? Boolean.TRUE : isActive;
+        isDeleted = (isDeleted == null) ? Boolean.FALSE : isDeleted;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    public static class AuditListener {
+        @PrePersist
+        public void setCreatedAtAndPublicId(Location loc) {
+            loc.prePersist();
+        }
+
+        @PreUpdate
+        public void setUpdatedAt(Location loc) {
+            loc.preUpdate();
+        }
+    }
+}
