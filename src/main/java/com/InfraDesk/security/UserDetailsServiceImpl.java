@@ -23,39 +23,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final UserRepository userRepository;
     private final MembershipRepository membershipRepository;
 
-//    @Override
-//    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-//        User user = userRepository.findByEmail(email)
-//                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
-//
-//        List<SimpleGrantedAuthority> authorities;
-//
-//        if (user.getRole() == Role.SUPER_ADMIN || user.getRole() == Role.COMPANY_CONFIGURE) {
-//            // global roles → SUPER_ADMIN, COMPANY_CONFIGURE
-//            authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
-//
-//        } else {
-//            // tenant-specific roles via Memberships
-//            List<Membership> activeMemberships = membershipRepository.findByUserIdAndIsActiveTrueAndIsDeletedFalse(user.getId());
-//
-//            if (activeMemberships.isEmpty()) {
-//                throw new UsernameNotFoundException("No active memberships found for user: " + email);
-//            }
-//
-//            authorities = activeMemberships.stream()
-//                    .map(m -> new SimpleGrantedAuthority("ROLE_" + m.getRole().name()))
-//                    .collect(Collectors.toList());
-//        }
-//
-//        return new CustomUserDetails(
-//                user.getEmail(),
-//                user.getPassword(),
-//                authorities,
-//                user.getId(),
-//                user.getRole()
-//        );
-//    }
-//
+
 @Override
 public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
     User user = userRepository.findByEmail(email)

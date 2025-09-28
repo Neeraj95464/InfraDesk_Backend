@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,4 +38,10 @@ public interface TicketTypeRepository extends JpaRepository<TicketType, Long> {
     Optional<TicketType>findByPublicIdAndCompanyPublicId(String id, String companyId);
 
     boolean existsByCompanyPublicIdAndNameIgnoreCase(String companyId, String name);
+
+    Optional<TicketType> findByCompanyPublicId(String companyId);
+
+    Optional<TicketType> findByPublicIdAndCompany_PublicId(String publicId, String companyPublicId);
+
+    List<TicketType> findByCompany_PublicId(String companyId);
 }

@@ -22,7 +22,6 @@ public class CompanyController {
 
     // Company registration - often requires elevated permissions, example with 'CAN_MANAGE_USERS'
     @PostMapping("/register/company")
-//    @PreAuthorize("@perm.check(null, 'CAN_CONFIGURE_COMPANY')") // No companyId yet, so pass null
     public ResponseEntity<ApiResponse<CompanyDTO>> createCompany(@RequestBody CompanyRegistrationRequest company) {
         CompanyDTO savedCompany = companyService.registerCompany(company);
         return ResponseEntity.ok(ApiResponse.success("Company registered successfully", savedCompany));

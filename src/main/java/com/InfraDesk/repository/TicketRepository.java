@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface TicketRepository extends JpaRepository<Ticket, Long> {
+public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecificationExecutor<Ticket>{
 
     Page<Ticket> findByCompany(Company company, Pageable pageable);
 
@@ -37,4 +37,19 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     long countByAssignee_IdAndStatusIn(Long assigneeId, List<TicketStatus> statuses);
 
     long countByAssigneeAndStatusIn(User u, List<TicketStatus> open);
+
+
+
+    Page<Ticket> findByCompany_PublicIdAndIsDeletedFalse(String companyId, Pageable pageable);
+
+    Page<Ticket> findByCompany_PublicIdAndIsDeletedFalseAndSubjectContainingIgnoreCase(
+            String companyId, String subject, Pageable pageable);
+
+    Page<Ticket> findByCompany_PublicIdAndIsDeletedFalseAndDescriptionContainingIgnoreCase(
+            String companyId, String description, Pageable pageable);
+
+    Page<Ticket> findByCompany_PublicIdAndIsDeletedFalseAndPublicIdContainingIgnoreCase(
+            String companyId, String publicId, Pageable pageable);
+
+    Optional<Ticket> findByPublicIdAndCompany_PublicId(String ticketId, String companyId);
 }

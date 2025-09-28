@@ -68,4 +68,6 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
     List<RolePermission> findByCompanyPublicId(@Param("publicId") String publicId);
 
     void deleteAllByCompany_Id(Long companyId);  // convenient bulk deletion
+
+    void deleteAllByCompany(Company company);
 }

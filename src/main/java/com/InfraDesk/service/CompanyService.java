@@ -45,7 +45,6 @@ public class CompanyService {
 
     @Transactional
     public CompanyDTO registerCompany(CompanyRegistrationRequest request) {
-        log.info("Company registration started: {}", request);
 
         // Normalize & validate inputs
         String email = request.getContactEmail().toLowerCase().trim();
@@ -112,8 +111,6 @@ public class CompanyService {
 
         company = companyRepository.save(company);
 
-        log.info("Company registration success: {}", company.getId());
-
         // Assign role
         Role assignedRole = (parentCompany == null) ? Role.PARENT_ADMIN : Role.COMPANY_ADMIN;
 
@@ -121,6 +118,8 @@ public class CompanyService {
         createDefaultAdminUser(request, company, email, assignedRole);
 
         initializeCompanyPermissions(company);
+
+
 
         return companyMapper.toDto(company);
     }

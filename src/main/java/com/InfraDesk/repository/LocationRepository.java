@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 public interface LocationRepository extends JpaRepository<Location, Long> {
@@ -29,24 +31,6 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
         Page<Location> findByCompanyAndIsDeletedFalse(Company company, Pageable pageable);
 
         Page<Location> findByCompanyAndIsDeletedFalseAndNameContainingIgnoreCase(Company company, String name, Pageable pageable);
-
-        // Custom query to find multi-site linked locations, adjust table and join names as per your schema
-//        @Query("""
-//        select distinct l from Location l
-//        join SiteLocationAssignment sla on sla.location = l
-//        where sla.company = :company and l.isDeleted = false
-//        and sla.isDeleted = false
-//        """)
-//        Page<Location> findMultiSiteLinkedLocationsByCompany(@Param("company") Company company, Pageable pageable);
-//
-//        @Query("""
-//        select distinct l from Location l
-//        join SiteLocationAssignment sla on sla.location = l
-//        where sla.company = :company and l.isDeleted = false
-//        and sla.isDeleted = false
-//        and lower(l.name) like lower(concat('%',:name,'%'))
-//        """)
-//        Page<Location> findMultiSiteLinkedLocationsByCompanyAndNameContainingIgnoreCase(@Param("company") Company company, @Param("name") String name, Pageable pageable);
 
     Optional<Location> findByPublicIdAndCompanyAndIsDeletedFalse(String locationPublicId, Company company);
 
@@ -74,4 +58,5 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
 
     Optional<Location> findByPublicIdAndCompany_PublicId(String locationPublicId, String companyPublicId);
 
+    List<Location> findByCompany_PublicId(String companyId);
 }

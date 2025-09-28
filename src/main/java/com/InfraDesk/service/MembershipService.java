@@ -84,6 +84,53 @@ public class MembershipService {
     }
 
 
+    public PaginatedResponse<UserMembershipDTO> getAllUsersByCompanyWithMemberships(String companyId, Pageable pageable) {
+        // Fetch paginated memberships for the company (no role/isActive/isDeleted filter)
+        Page<Membership> membershipsPage = membershipRepository
+                .findByCompany_PublicId(companyId, pageable);
+
+        // Group memberships by user
+        Map<User, List<Membership>> membershipsByUser = membershipsPage.getContent().stream()
+                .collect(Collectors.groupingBy(Membership::getUser));
+
+        List<UserMembershipDTO> content = membershipsByUser.entrySet().stream()
+                .map(entry -> {
+                    User user = entry.getKey();
+                    List<MembershipInfoDTO> membershipDTOs = entry.getValue().stream()
+                            .map(m -> MembershipInfoDTO.builder()
+                                    .companyPublicId(m.getCompany().getPublicId())
+                                    .companyName(m.getCompany().getName())
+                                    .role(m.getRole())
+                                    .isActive(m.getIsActive())
+                                    .createdAt(m.getCreatedAt())
+                                    .build())
+                            .collect(Collectors.toList());
+
+                    LocalDateTime lastLoginAt = userLoginAuditRepository.findLastLoginByUserId(user.getId());
+
+                    return UserMembershipDTO.builder()
+                            .userPublicId(user.getPublicId())
+                            .email(user.getEmail())
+                            .username(user.getEmployeeProfiles().isEmpty() ? null : user.getEmployeeProfiles().get(0).getName())
+                            .isActive(user.getIsActive())
+                            .createdAt(user.getCreatedAt())
+                            .lastLoginAt(lastLoginAt)
+                            .memberships(membershipDTOs)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return new PaginatedResponse<>(
+                content,
+                membershipsPage.getNumber(),
+                membershipsPage.getSize(),
+                membershipsPage.getTotalElements(),
+                membershipsPage.getTotalPages(),
+                membershipsPage.isLast()
+        );
+    }
+
+
     @Transactional
     public MembershipInfoDTO assignMembership(String emailId, String companyId, Role role) {
 

@@ -59,8 +59,7 @@ public class Ticket {
     @Column(nullable = false, length = 150)
     private String subject;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -96,9 +95,15 @@ public class Ticket {
 
     private LocalDateTime slaDueDate;
 
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
     @PreUpdate
-    public void touch() {
-        updatedAt = LocalDateTime.now();
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }
 

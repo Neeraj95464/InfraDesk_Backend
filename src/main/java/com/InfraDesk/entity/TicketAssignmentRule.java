@@ -1,54 +1,10 @@
 package com.InfraDesk.entity;
 
-import com.InfraDesk.enums.TicketAssigneeType;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
-//
-//@Entity
-//@Table(name = "assignment_rules", indexes = {
-//        @Index(name = "idx_rule_company_priority", columnList = "company_id, priority")
-//})
-//@Data @NoArgsConstructor @AllArgsConstructor @Builder
-//public class TicketAssignmentRule {
-//    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-//    private Long id;
-//
-//    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-//    @JoinColumn(name = "company_id")
-//    private Company company;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "ticket_type_id")
-//    private TicketType ticketType;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "location_id")
-//    private Location location;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "department_id")
-//    private Department department;
-//
-//    // assignment target (one of these fields used)
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "assignee_user_id")
-//    private User assigneeUser;
-//
-//    @Column(name = "assignee_role", length = 100)
-//    private String assigneeRole;
-//
-//    @Column(name = "assignee_group", length = 100)
-//    private String assigneeGroup;
-//
-//    @Column(name = "priority", nullable = false)
-//    private Integer priority = 0; // higher = earlier
-//}
-//
-
-
 
 @Entity
 @Table(name = "assignment_rules", indexes = {

@@ -2,6 +2,7 @@ package com.InfraDesk.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -14,4 +15,15 @@ public class PaginatedResponse<T> {
     private long totalElements;
     private int totalPages;
     private boolean last;
+
+    public static <T> PaginatedResponse<T> of(Page<T> page) {
+        return new PaginatedResponse<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
+    }
 }

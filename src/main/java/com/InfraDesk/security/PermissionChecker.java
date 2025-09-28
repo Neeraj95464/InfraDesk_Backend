@@ -9,62 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-//@Component("perm")
-//@RequiredArgsConstructor
-//public class PermissionChecker {
-//    private final PermissionService permissionService;
-//
-//    public boolean check(String companyId, String permissionCode) {
-//        var auth = SecurityContextHolder.getContext().getAuthentication();
-//        if (auth == null || !(auth.getPrincipal() instanceof CustomUserDetails cud)) return false;
-//
-//        if (cud.getRole() == Role.SUPER_ADMIN) return true;
-//
-//        Long userId = cud.getUserId();
-//        return permissionService.hasPermission(userId, companyId, permissionCode);
-//    }
-//}
-
-
-//@Component("perm")
-//@RequiredArgsConstructor
-//public class PermissionChecker {
-//    private final PermissionService permissionService;
-//
-//    public boolean check(String companyId, PermissionCode code) {
-//        var auth = SecurityContextHolder.getContext().getAuthentication();
-//        if (auth == null || !(auth.getPrincipal() instanceof CustomUserDetails cud)) return false;
-//
-//        if (cud.getRole() == Role.SUPER_ADMIN) return true;
-//
-//        return permissionService.hasPermission(cud.getUserId(), companyId, code.name());
-//    }
-//}
-
-
-//@Component("perm")
-//@RequiredArgsConstructor
-//public class PermissionChecker {
-//    private final PermissionService permissionService;
-//
-//    public boolean check(String companyId, PermissionCode code) {
-//        var auth = SecurityContextHolder.getContext().getAuthentication();
-//        if (auth == null || !(auth.getPrincipal() instanceof CustomUserDetails)) {
-//            return false;
-//        }
-//
-//        CustomUserDetails cud = (CustomUserDetails) auth.getPrincipal();
-//
-//        if (cud.getRole() == Role.SUPER_ADMIN) {
-//            return true;
-//        }
-//
-//        // Keep PermissionCode typed (safer than String)
-//        return permissionService.hasPermission(cud.getUserId(), companyId, code.name());
-//    }
-//}
-
-
 @Component("perm")
 @RequiredArgsConstructor
 public class PermissionChecker {
@@ -72,6 +16,7 @@ public class PermissionChecker {
     private final MembershipRepository membershipRepository; // Inject repository to fetch membership
 
     public boolean check(String companyId, PermissionCode code) {
+
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof CustomUserDetails)) {
             return false;

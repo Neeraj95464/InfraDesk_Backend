@@ -19,24 +19,34 @@ public class TicketFileStorageService {
     @Value("${infradesk.file-storage.base-path}")
     private String basePath;
 
-    /**
-     * Stores a file in a subfolder based on ticketId.
-     *
-     * @param file     file to store
-     * @param ticketId ticket ID for grouping
-     * @return stored file path (absolute) for saving in DB
-     */
     public String storeFile(MultipartFile file, String ticketId) throws IOException {
-        // Each ticket will have its own folder
+        //("Base path: " + basePath);
         Path folder = Paths.get(basePath, ticketId);
+        //("Creating folder: " + folder.toAbsolutePath());
         Files.createDirectories(folder);
 
-        // File name will include ticketId + random UUID + original name
-        String safeName = ticketId + "_" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+        String originalFilename = file.getOriginalFilename();
+        //("Original filename: " + originalFilename);
+        String safeOriginalFilename = originalFilename != null
+                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_")
+                : "unknown";
+        //("Sanitized filename: " + safeOriginalFilename);
+
+        String safeName = ticketId + "_" + UUID.randomUUID() + "_" + safeOriginalFilename;
         Path targetPath = folder.resolve(safeName);
 
-        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        try {
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            System.err.println("Error copying file " + originalFilename + " to " + targetPath);
+            e.printStackTrace();
+            throw e;
+        }
 
-        return targetPath.toString(); // Save this path in DB
+        // Return consistent forward-slashed path for DB
+        return ticketId + "/" + safeName;
     }
+
+
+
 }

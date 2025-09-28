@@ -41,150 +41,6 @@ public class EmployeeService {
     private final AuthUtils authUtils;
     private final CompanyDomainRepository companyDomainRepository;
 
-//    @Transactional
-//    public void createEmployeeWithUser(String companyId,EmployeeRequestDTO dto) {
-//
-//        User user = userRepository.findByEmail(dto.getEmail())
-//                .orElseGet(() -> {
-//                    User newUser = User.builder()
-//                            .email(dto.getEmail())
-//                            .password(passwordEncoder.encode(dto.getPassword()))
-//                            .isActive(true)
-//                            .build();
-//                    return userRepository.save(newUser);
-//                });
-//
-//        Company company = companyRepository.findByPublicId(companyId)
-//                .orElseThrow(() -> new NotFoundException("Company not found"));
-//
-//        Department department = departmentRepository
-//                .findByPublicIdAndCompany_PublicId(dto.getDepartmentId(),companyId)
-//                .orElseThrow(() -> new NotFoundException("Department not found"));
-//
-//        Site site = dto.getSiteId() != null
-//                ? siteRepository
-//                .findByPublicIdAndCompany_PublicId(dto.getSiteId(),companyId)
-//                .orElse(null)
-//                : null;
-//
-//        Location location = dto.getLocationId() != null
-//                ? locationRepository
-//                .findByPublicIdAndCompany_PublicId(dto.getLocationId(),companyId)
-//                .orElse(null)
-//                : null;
-//
-//        Employee employee = Employee.builder()
-//                .employeeId(dto.getEmployeeId())
-//                .name(dto.getName())
-//                .phone(dto.getPhone())
-//                .designation(dto.getDesignation())
-//                .company(company)
-//                .department(department)
-//                .site(site)
-//                .location(location)
-//                .isDeleted(false)
-//                .isActive(true)
-//                .user(user)
-//                .createdAt(LocalDateTime.now())
-//                .build();
-//
-//        employeeRepository.save(employee);
-//
-//        if (!membershipRepository.existsByUserAndCompany(user, company)) {
-//            Membership membership = Membership.builder()
-//                    .user(user)
-//                    .company(company)
-//                    .role(dto.getRole())
-//                    .build();
-//            membershipRepository.save(membership);
-//        }
-//    }
-
-
-//    @Transactional
-//    public void createEmployeeWithUser(String companyId, EmployeeRequestDTO dto) {
-////        System.out.println(dto);
-//        User authUser = authUtils.getAuthenticatedUser()
-//                .orElseThrow(() -> new NotFoundException("Auth user not found in Create employee"));
-//
-//        Company company = companyRepository.findByPublicId(companyId)
-//                .orElseThrow(() -> new NotFoundException("Company not found"));
-//
-//        // Extract domain part from email (after '@')
-//        String emailDomain = dto.getEmail().substring(dto.getEmail().indexOf('@') + 1).toLowerCase();
-//
-//        // Check if domain is primary domain or one of the additional domains
-//        // Defensive copy
-//        Set<CompanyDomain> domainsSnapshot = new HashSet<>(company.getDomains());
-//
-//        boolean domainAllowed = company.getDomain().equalsIgnoreCase(emailDomain) ||
-//                domainsSnapshot.stream()
-//                        .map(CompanyDomain::getDomain)
-//                        .anyMatch(d -> d.equalsIgnoreCase(emailDomain));
-//
-//        if (!domainAllowed) {
-//            throw new IllegalArgumentException("Email domain '" + emailDomain + "' is not allowed for company " + company.getName());
-//        }
-//
-//        // Proceed with the existing logic to create user and employee
-//        User user = userRepository.findByEmail(dto.getEmail())
-//                .orElseGet(() -> {
-//                    User newUser = User.builder()
-//                            .email(dto.getEmail())
-//                            .password(passwordEncoder.encode(dto.getPassword()))
-//                            .isActive(true)
-//                            .isDeleted(false)
-//                            .role(Role.USER)
-//                            .createdAt(LocalDateTime.now())
-//                            .createdBy(authUser.getEmployeeProfiles().getFirst().getName())
-//                            .build();
-//                    return userRepository.save(newUser);
-//                });
-//
-//        Department department = departmentRepository
-//                .findByPublicIdAndCompany_PublicId(dto.getDepartmentId(), companyId)
-//                .orElseThrow(() -> new NotFoundException("Department not found"));
-//
-//        Site site = dto.getSiteId() != null
-//                ? siteRepository
-//                .findByPublicIdAndCompany_PublicId(dto.getSiteId(), companyId)
-//                .orElse(null)
-//                : null;
-//
-//        Location location = dto.getLocationId() != null
-//                ? locationRepository
-//                .findByPublicIdAndCompany_PublicId(dto.getLocationId(), companyId)
-//                .orElse(null)
-//                : null;
-//
-//        Employee employee = Employee.builder()
-//                .employeeId(dto.getEmployeeId())
-//                .name(dto.getName())
-//                .phone(dto.getPhone())
-//                .designation(dto.getDesignation())
-//                .company(company)
-//                .department(department)
-//                .site(site)
-//                .location(location)
-//                .createdBy(authUser.getEmployeeProfiles().getFirst().getName())
-//                .createdAt(LocalDateTime.now())
-//                .isDeleted(false)
-//                .isActive(true)
-//                .user(user)
-//                .createdAt(LocalDateTime.now())
-//                .build();
-//
-//        employeeRepository.save(employee);
-//
-//        if (!membershipRepository.existsByUserAndCompany(user, company)) {
-//            Membership membership = Membership.builder()
-//                    .user(user)
-//                    .company(company)
-//                    .role(dto.getRole())
-//                    .build();
-//            membershipRepository.save(membership);
-//        }
-//    }
 
     @Transactional
     public void createEmployeeWithUser(String companyId, EmployeeRequestDTO dto) {
@@ -207,27 +63,6 @@ public class EmployeeService {
         }
         String emailDomain = email.substring(atIdx + 1).trim();
         logger.debug("Checking email domain: {}", emailDomain);
-
-//        Set<String> allowedDomains = new HashSet<>();
-//        allowedDomains.add(company.getDomain().toLowerCase());
-//
-//        List<CompanyDomain> validDomains ;
-//        if(company.getParentCompany().getId() != null){
-//            validDomains= companyDomainRepository
-//                    .findByCompany_PublicIdAndIsActiveTrueAndIsDeletedFalse(company.getParentCompany().getPublicId());
-//        }else {
-//            validDomains = companyDomainRepository
-//                    .findByCompany_PublicIdAndIsActiveTrueAndIsDeletedFalse(companyId);
-//        }
-//
-//        for (CompanyDomain domain : validDomains) {
-//            allowedDomains.add(domain.getDomain().toLowerCase());
-//        }
-//
-//        boolean domainAllowed = allowedDomains.contains(emailDomain);
-//        if (!domainAllowed) {
-//            throw new BusinessException("ACCESS_DENIED","Email domain '" + emailDomain + "' is not allowed for company " + company.getName());
-//        }
 
         isEmailDomainAllowed(company,emailDomain);
 
@@ -344,19 +179,6 @@ public class EmployeeService {
 
     }
 
-//    public PaginatedResponse<Employee> getAllEmployees(int page, int size) {
-//        Pageable pageable = PageRequest.of(page, size);
-//        Page<Employee> employeePage = employeeRepository.findAll(pageable);
-//
-//        return new PaginatedResponse<>(
-//                employeePage.getContent(),
-//                employeePage.getNumber(),
-//                employeePage.getSize(),
-//                employeePage.getTotalElements(),
-//                employeePage.getTotalPages(),
-//                employeePage.isLast()
-//        );
-//    }
 
     public PaginatedResponse<EmployeeResponseDTO> getAllEmployees(String companyId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);

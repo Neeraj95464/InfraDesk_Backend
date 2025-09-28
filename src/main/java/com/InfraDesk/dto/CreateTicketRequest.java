@@ -10,6 +10,7 @@ import java.util.List;
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class CreateTicketRequest {
     private String subject;
+    private String creatorEmail;
     private String description;
     private String ticketTypeId;
     private String departmentId;

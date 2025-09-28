@@ -14,15 +14,18 @@ public class TicketMessage {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false, length = 50)
+    private String publicId = UUID.randomUUID().toString();
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ticket_id", nullable = false)
     private Ticket ticket;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id")
-    private User author; // null for system/email if sender not matched
+    private User author;
 
-    @Lob @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String body;
 
     @Column(nullable = false)
@@ -38,10 +41,23 @@ public class TicketMessage {
     @Column(name = "in_reply_to", length = 512)
     private String inReplyTo;
 
-//    @OneToMany(mappedBy = "ticket_messages", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<TicketAttachment> attachments = new ArrayList<>();
-
     @OneToMany(mappedBy = "ticketMessage", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TicketAttachment> attachments = new ArrayList<>();
+
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        if (publicId == null) {
+            publicId = UUID.randomUUID().toString();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 
 }

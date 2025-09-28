@@ -23,13 +23,23 @@ public class MembershipController {
     private final MembershipService membershipService;
 
     @GetMapping("/company/{companyId}/users")
-    @PreAuthorize("@perm.check(#companyId, 'COMPANY_CONFIGURE')")
+    @PreAuthorize("@perm.check(#companyId, 'EMPLOYEE_MANAGE')")
     public PaginatedResponse<UserMembershipDTO> getUsersByCompany(
             @PathVariable String companyId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         return membershipService.getUsersByCompanyWithMemberships(companyId, PageRequest.of(page, size));
+    }
+
+    @GetMapping("/company/{companyId}/users/all")
+    @PreAuthorize("@perm.check(#companyId, 'EMPLOYEE_VIEW')")
+    public PaginatedResponse<UserMembershipDTO> getAllUsersByCompany(
+            @PathVariable String companyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return membershipService.getAllUsersByCompanyWithMemberships(companyId, PageRequest.of(page, size));
     }
 
     @PostMapping("/assign/{companyId}")

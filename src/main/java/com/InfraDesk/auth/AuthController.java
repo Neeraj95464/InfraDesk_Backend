@@ -5,6 +5,7 @@ import com.InfraDesk.entity.Employee;
 import com.InfraDesk.entity.Membership;
 import com.InfraDesk.entity.User;
 import com.InfraDesk.enums.Role;
+import com.InfraDesk.exception.BusinessException;
 import com.InfraDesk.repository.MembershipRepository;
 import com.InfraDesk.repository.UserRepository;
 import com.InfraDesk.security.CustomUserDetails;
@@ -66,7 +67,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, HttpServletResponse response) {
         // 1. Validate credentials
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(() -> new BusinessException("Invalid credentials"));
 
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
@@ -169,7 +170,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> refreshToken(
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response) {
-
+//        System.out.println("Refresh token being call");
         // 1. Check token existence
         if (refreshToken == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing refresh token");

@@ -66,4 +66,6 @@ public interface MembershipRepository extends JpaRepository<Membership,Long> {
     Optional<Membership> findByUser_IdAndCompany_PublicId(Long userPublicId, String companyPublicId);
 
     List<Membership> findByCompanyIdAndRoleAndIsActiveTrue(Long companyId, Role role);
+
+    Page<Membership> findByCompany_PublicId(String companyId, Pageable pageable);
 }

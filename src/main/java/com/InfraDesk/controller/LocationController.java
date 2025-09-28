@@ -20,7 +20,7 @@ public class LocationController {
     private final LocationService locationService;
 
     @GetMapping
-    @PreAuthorize("@perm.check(#companyId, 'COMPANY_CONFIGURE')")
+    @PreAuthorize("@perm.check(#companyId, 'TICKET_VIEW')")
     public ResponseEntity<PaginatedResponse<LocationResponseDTO>> getLocations(
             @PathVariable String companyId,
             @PathVariable String siteId,

@@ -3,7 +3,6 @@ package com.InfraDesk.service;
 import com.InfraDesk.dto.PaginatedResponse;
 import com.InfraDesk.dto.UserDTO;
 import com.InfraDesk.entity.Company;
-import com.InfraDesk.entity.Membership;
 import com.InfraDesk.entity.User;
 import com.InfraDesk.enums.Role;
 import com.InfraDesk.exception.BusinessException;
@@ -72,31 +71,6 @@ public class UserService {
         }
         return companyIds;
     }
-
-
-
-//    public PaginatedResponse<UserDTO> searchUsersForCompanyAndSubsidiaries(String rootCompanyPublicId, String keyword, int page, int size) {
-//        Company rootCompany = companyRepository.findByPublicId(rootCompanyPublicId)
-//                .orElseThrow(() -> new BusinessException("COMPANY_MISSING", "No company found: " + rootCompanyPublicId));
-//
-//        // Always get root company + subsidiaries starting from the given company
-//        Set<String> allowedCompanyPublicIds = getCompanyAndSubsidiaryPublicIds(rootCompany);
-//
-//        Specification<User> spec = UserSpecification.userHasKeywordAndAnyCompany(allowedCompanyPublicIds, keyword);
-//        Pageable pageable = PageRequest.of(page, size);
-//
-//        Page<User> usersPage = userRepository.findAll(spec, pageable);
-//
-//
-//        return new PaginatedResponse<>(
-//                UserMapper.toDTO(usersPage),
-//                usersPage.getNumber(),
-//                usersPage.getSize(),
-//                usersPage.getTotalElements(),
-//                usersPage.getTotalPages(),
-//                usersPage.isLast()
-//        );
-//    }
 
     public PaginatedResponse<UserDTO> searchUsersForCompanyAndSubsidiaries(String rootCompanyPublicId, String keyword, int page, int size) {
         Company rootCompany = companyRepository.findByPublicId(rootCompanyPublicId)
