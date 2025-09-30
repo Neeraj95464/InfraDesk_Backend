@@ -11,10 +11,11 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 @EnableJpaAuditing(auditorAwareRef = "auditorAwareImpl")
 public class InfraDeskApplication {
 
-    @Bean
-    public JavaMailSender javaMailSender() {
-        return new JavaMailSenderImpl(); // or a mock implementation
-    }
+//    @Bean
+//    public JavaMailSender javaMailSender() {
+//        return new JavaMailSenderImpl(); // or a mock implementation
+//    }
+
 
     public static void main(String[] args) {
 		SpringApplication.run(InfraDeskApplication.class, args);

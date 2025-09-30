@@ -5,15 +5,18 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
+//@Table(name = "mail_integrations",
+//        indexes = {@Index(name = "idx_mail_company", columnList = "company_id")})
 @Table(name = "mail_integrations",
-        indexes = {@Index(name = "idx_mail_company", columnList = "company_id")})
+        indexes = {@Index(name = "idx_mail_company", columnList = "company_id")},
+        uniqueConstraints = {@UniqueConstraint(columnNames = {"company_id", "mailbox_email"})})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class MailIntegration {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private Long companyId; // FK to your Company table (store id or publicId depending on design)
+    private String companyId; // FK to your Company table (store id or publicId depending on design)
 
     @Column(nullable = false, length = 50)
     private String provider; // GMAIL | MICROSOFT | SMTP | IMAP
@@ -22,10 +25,10 @@ public class MailIntegration {
     private String mailboxEmail; // e.g. support@acme.com
 
     // OAuth fields (encrypted)
-    @Column(length = 2000)
+    @Column(length = 4000)
     private String encryptedAccessToken;
 
-    @Column(length = 2000)
+    @Column(length = 4000)
     private String encryptedRefreshToken;
 
     private Instant tokenExpiresAt;
@@ -39,7 +42,7 @@ public class MailIntegration {
     private Integer smtpPort;
     private Boolean smtpTls;
 
-    @Column(length = 2000)
+    @Column(length = 4000)
     private String scopes; // e.g. "gmail.readonly,gmail.send"
 
     private Boolean enabled = true;

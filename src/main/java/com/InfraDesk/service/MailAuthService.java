@@ -81,5 +81,13 @@ public class MailAuthService {
         repo.save(m);
         return m;
     }
+
+    public String getDecryptedAccessToken(MailIntegration m) {
+        if (m == null || m.getEncryptedAccessToken() == null) {
+            return null;
+        }
+        return encryptor.decrypt(m.getEncryptedAccessToken());
+    }
+
 }
 

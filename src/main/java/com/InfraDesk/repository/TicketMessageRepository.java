@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TicketMessageRepository extends JpaRepository<TicketMessage, Long> {
@@ -14,4 +15,6 @@ public interface TicketMessageRepository extends JpaRepository<TicketMessage, Lo
     List<TicketMessage> findByTicket_PublicIdOrderByCreatedAtAsc(String ticketPublicId);
 
     Page<TicketMessage> findByTicket_PublicIdAndTicket_Company_PublicIdOrderByCreatedAtAsc(String ticketId, String companyId, Pageable pageable);
+
+    Optional<TicketMessage> findByEmailMessageId(String messageId);
 }

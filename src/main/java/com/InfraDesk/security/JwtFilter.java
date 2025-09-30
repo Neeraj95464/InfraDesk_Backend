@@ -52,7 +52,7 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws IOException, ServletException {
 
         String token = extractJwtFromRequest(request);
-
+//        System.out.println("Incoming request: " + request.getMethod() + " " + request.getRequestURI());
         if (token == null) {
             filterChain.doFilter(request, response);
             return;

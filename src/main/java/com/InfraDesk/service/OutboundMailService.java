@@ -1,5 +1,6 @@
 package com.InfraDesk.service;
 
+import com.InfraDesk.component.SimpleEncryptor;
 import com.InfraDesk.entity.MailIntegration;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -18,6 +19,7 @@ import java.util.Properties;
 public class OutboundMailService {
     private final MailAuthService authService;
     private final WebClient webClient = WebClient.create();
+    private final SimpleEncryptor encryptor;
 
     public void sendViaGraph(MailIntegration integration, String to, String subject, String htmlBody) {
         String token = authService.getDecryptedAccessToken(integration);
@@ -32,6 +34,7 @@ public class OutboundMailService {
                 .bodyValue(message)
                 .retrieve().bodyToMono(Void.class).block();
     }
+
 
     public void sendUsingSmtp(MailIntegration integration, String to, String subject, String htmlBody) throws MessagingException {
         JavaMailSenderImpl sender = new JavaMailSenderImpl();

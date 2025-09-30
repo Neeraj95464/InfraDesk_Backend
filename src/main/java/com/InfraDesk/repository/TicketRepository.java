@@ -52,4 +52,6 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
             String companyId, String publicId, Pageable pageable);
 
     Optional<Ticket> findByPublicIdAndCompany_PublicId(String ticketId, String companyId);
+
+    Optional<Ticket> findByPublicIdAndCompanyId(String ticketPublicId, Long companyId);
 }
