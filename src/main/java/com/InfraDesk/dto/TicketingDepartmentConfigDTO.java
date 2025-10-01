@@ -2,6 +2,8 @@ package com.InfraDesk.dto;
 
 import lombok.Data;
 
+import java.util.Set;
+
 @Data
 public class TicketingDepartmentConfigDTO {
     private String publicId;
@@ -11,6 +13,8 @@ public class TicketingDepartmentConfigDTO {
     private Boolean ticketEnabled;
     private String ticketEmail;
     private String note;
+    private Boolean allowTicketsFromAnyDomain;
+    private Set<String> allowedDomainsForTicket;
     private Boolean isActive;
     private Boolean isDeleted;
     private String createdBy;

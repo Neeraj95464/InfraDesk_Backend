@@ -1,5 +1,7 @@
 package com.InfraDesk.repository;
 
+import com.InfraDesk.entity.Company;
+import com.InfraDesk.entity.Department;
 import com.InfraDesk.entity.TicketingDepartmentConfig;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,4 +28,5 @@ public interface TicketingDepartmentConfigRepository extends JpaRepository<Ticke
 
         java.util.Optional<TicketingDepartmentConfig> findByPublicId(String publicId);
 
+    Optional<TicketingDepartmentConfig> findByCompanyAndDepartment(Company company, Department department);
 }

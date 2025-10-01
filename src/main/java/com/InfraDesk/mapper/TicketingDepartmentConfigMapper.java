@@ -22,6 +22,8 @@ public class TicketingDepartmentConfigMapper {
         dto.setTicketEnabled(entity.getTicketEnabled());
         dto.setTicketEmail(entity.getTicketEmail());
         dto.setNote(entity.getNote());
+        dto.setAllowTicketsFromAnyDomain(entity.getAllowTicketsFromAnyDomain());
+        dto.setAllowedDomainsForTicket(entity.getAllowedTicketDomains());
         dto.setIsActive(entity.getIsActive());
         dto.setIsDeleted(entity.getIsDeleted());
         dto.setCreatedBy(entity.getCreatedBy());

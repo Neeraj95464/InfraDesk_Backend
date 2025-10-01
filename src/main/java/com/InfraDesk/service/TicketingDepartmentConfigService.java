@@ -21,10 +21,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -68,35 +65,108 @@ public class TicketingDepartmentConfigService {
         return TicketingDepartmentConfigMapper.toDto(entity);
     }
 
+//    public TicketingDepartmentConfigDTO createConfig(TicketingDepartmentConfigCreateDTO createDTO) {
+//        Company company = companyRepository.findByPublicId(createDTO.getCompanyPublicId())
+//                .orElseThrow(() -> new EntityNotFoundException("Company not found"));
+//
+//        // Standardize and extract domain from email
+//        String email = createDTO.getTicketEmail().toLowerCase();
+//        int atIdx = email.indexOf('@');
+//        if (atIdx < 0 || atIdx >= email.length() - 1) {
+//            throw new IllegalArgumentException("Invalid email format: " + email);
+//        }
+//        String emailDomain = email.substring(atIdx + 1).trim();
+//
+//        isEmailDomainAllowed(company,emailDomain);
+//
+//        Department department = departmentRepository
+//                .findByPublicIdAndCompany_PublicId(createDTO.getDepartmentPublicId(),company.getPublicId())
+//                .orElseThrow(() -> new EntityNotFoundException("Department not found"));
+//
+//        TicketingDepartmentConfig configEntity = TicketingDepartmentConfigMapper.toEntity(createDTO);
+//        configEntity.setCompany(company);
+//        configEntity.setDepartment(department);
+//
+//        if (configEntity.getPublicId() == null) {
+//            configEntity.setPublicId(UUID.randomUUID().toString());
+//        }
+//
+//        TicketingDepartmentConfig saved = configRepository.save(configEntity);
+//        return TicketingDepartmentConfigMapper.toDto(saved);
+//    }
+
     public TicketingDepartmentConfigDTO createConfig(TicketingDepartmentConfigCreateDTO createDTO) {
+        // Fetch company by publicId
         Company company = companyRepository.findByPublicId(createDTO.getCompanyPublicId())
-                .orElseThrow(() -> new EntityNotFoundException("Company not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Company not found with publicId: " + createDTO.getCompanyPublicId()));
 
-        // Standardize and extract domain from email
-        String email = createDTO.getTicketEmail().toLowerCase();
-        int atIdx = email.indexOf('@');
-        if (atIdx < 0 || atIdx >= email.length() - 1) {
-            throw new IllegalArgumentException("Invalid email format: " + email);
-        }
-        String emailDomain = email.substring(atIdx + 1).trim();
+        // Fetch department by publicId and company publicId
+        Department department = departmentRepository.findByPublicIdAndCompany_PublicId(createDTO.getDepartmentPublicId(), company.getPublicId())
+                .orElseThrow(() -> new EntityNotFoundException("Department not found with publicId: " + createDTO.getDepartmentPublicId()));
 
-        isEmailDomainAllowed(company,emailDomain);
+        // Check for existing soft deleted config for same company + department
+        Optional<TicketingDepartmentConfig> existingOpt = configRepository.findByCompanyAndDepartment(company, department);
 
-        Department department = departmentRepository
-                .findByPublicIdAndCompany_PublicId(createDTO.getDepartmentPublicId(),company.getPublicId())
-                .orElseThrow(() -> new EntityNotFoundException("Department not found"));
+        TicketingDepartmentConfig configEntity;
 
-        TicketingDepartmentConfig configEntity = TicketingDepartmentConfigMapper.toEntity(createDTO);
-        configEntity.setCompany(company);
-        configEntity.setDepartment(department);
-
-        if (configEntity.getPublicId() == null) {
+        if (existingOpt.isPresent()) {
+            configEntity = existingOpt.get();
+            if (Boolean.TRUE.equals(configEntity.getIsDeleted())) {
+                // Restore soft-deleted config
+                configEntity.setIsDeleted(false);
+            }
+        } else {
+            configEntity = new TicketingDepartmentConfig();
             configEntity.setPublicId(UUID.randomUUID().toString());
+            configEntity.setCompany(company);
+            configEntity.setDepartment(department);
         }
 
+        // Set core fields from DTO
+        configEntity.setTicketEnabled(createDTO.getTicketEnabled() != null ? createDTO.getTicketEnabled() : Boolean.TRUE);
+        configEntity.setTicketEmail(createDTO.getTicketEmail() != null ? createDTO.getTicketEmail().toLowerCase().trim() : null);
+        configEntity.setNote(createDTO.getNote());
+        configEntity.setIsActive(createDTO.getIsActive() != null ? createDTO.getIsActive() : Boolean.TRUE);
+        configEntity.setIsDeleted(createDTO.getIsDeleted() != null ? createDTO.getIsDeleted() : Boolean.FALSE);
+
+        // Set new domain control fields
+        Boolean allowAny = createDTO.getAllowTicketsFromAnyDomain();
+        if (allowAny == null) allowAny = Boolean.TRUE;
+        configEntity.setAllowTicketsFromAnyDomain(allowAny);
+
+        if (allowAny) {
+            // Clear any allowed domains if open to any domain
+            configEntity.getAllowedTicketDomains().clear();
+        } else {
+            Set<String> domains = createDTO.getAllowedDomainsForTicket() != null ?
+                    createDTO.getAllowedDomainsForTicket()
+                            .stream()
+                            .map(String::toLowerCase)
+                            .map(String::trim)
+                            .filter(d -> !d.isEmpty())
+                            .collect(Collectors.toSet())
+                    : new HashSet<>();
+            configEntity.getAllowedTicketDomains().clear();
+            configEntity.getAllowedTicketDomains().addAll(domains);
+        }
+
+        // Validate ticketEmail domain if domain restriction enabled
+        if (configEntity.getTicketEmail() != null && !allowAny) {
+            int atIndex = configEntity.getTicketEmail().indexOf('@');
+            if (atIndex < 0 || atIndex >= configEntity.getTicketEmail().length() - 1) {
+                throw new IllegalArgumentException("Invalid ticketEmail format: " + configEntity.getTicketEmail());
+            }
+            String emailDomain = configEntity.getTicketEmail().substring(atIndex + 1);
+            if (!configEntity.getAllowedTicketDomains().contains(emailDomain)) {
+                throw new IllegalArgumentException("Email domain of ticketEmail is not allowed: " + emailDomain);
+            }
+        }
+
+        // Save (new or updated)
         TicketingDepartmentConfig saved = configRepository.save(configEntity);
         return TicketingDepartmentConfigMapper.toDto(saved);
     }
+
 
     public void isEmailDomainAllowed(Company company, String emailDomain) {
         if (company == null || emailDomain == null || emailDomain.isBlank()) {

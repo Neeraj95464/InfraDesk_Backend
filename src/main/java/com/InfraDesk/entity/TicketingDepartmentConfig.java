@@ -9,6 +9,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -19,7 +21,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @SQLDelete(sql = "UPDATE ticketing_department_config SET is_deleted = true WHERE id = ?")
-@Where(clause = "is_deleted = false")
+//@Where(clause = "is_deleted = false")
 @EntityListeners(TicketingDepartmentConfig.AuditListener.class)
 public class TicketingDepartmentConfig {
     @Id
@@ -32,9 +34,19 @@ public class TicketingDepartmentConfig {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
+
+    @Column(name = "allow_tickets_from_any_domain", nullable = false)
+    private Boolean allowTicketsFromAnyDomain = Boolean.TRUE;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "ticketing_department_allowed_domains",
+            joinColumns = @JoinColumn(name = "department_config_id"))
+    @Column(name = "domain")
+    private Set<String> allowedTicketDomains = new HashSet<>();
 
     @Column(nullable = false)
     private Boolean ticketEnabled = Boolean.TRUE;

@@ -224,19 +224,6 @@ public class MailAuthController {
 
             String email = (String) profile.get("userPrincipalName");
 
-//            MailIntegration integration = MailIntegration.builder()
-//                    .companyId(companyId)
-//                    .provider("MICROSOFT")
-//                    .mailboxEmail(email)
-//                    .encryptedAccessToken(encryptor.encrypt(accessToken))
-//                    .encryptedRefreshToken(encryptor.encrypt(refreshToken))
-//                    .tokenExpiresAt(Instant.now().plusSeconds(expiresIn))
-//                    .scopes("Mail.ReadWrite,Mail.Send")
-//                    .enabled(true)
-//                    .createdAt(Instant.now())
-//                    .build();
-//            repo.save(integration);
-
             Optional<MailIntegration> existing = repo.findByCompanyIdAndMailboxEmail(companyId, email);
 
             MailIntegration integration;

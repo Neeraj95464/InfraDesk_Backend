@@ -200,40 +200,6 @@ public class TicketService {
     }
 
 
-//    @Transactional
-//    public void importTicketsFromExcel(InputStream is, String companyId) throws Exception {
-//        Workbook workbook = WorkbookFactory.create(is);
-//        Sheet sheet = workbook.getSheetAt(0);
-//
-//        for (Row row : sheet) {
-//            if (row.getRowNum() == 0) continue; // skip header
-//            CreateTicketRequest req = new CreateTicketRequest();
-//            req.setSubject(getCellValue(row.getCell(0)));
-//            req.setCreatorEmail(getCellValue(row.getCell(1)));
-//            req.setDescription(getCellValue(row.getCell(2)));
-//            req.setTicketTypeId(getCellValue(row.getCell(3)));
-//            req.setDepartmentId(getCellValue(row.getCell(4)));
-//            req.setLocationId(getCellValue(row.getCell(5)));
-//            req.setPriority(TicketPriority.valueOf(getCellValue(row.getCell(6)).toUpperCase()));
-//            req.setStatus(TicketStatus.valueOf(getCellValue(row.getCell(7)).toUpperCase()));
-//
-//            createTicket(req, companyId);
-//        }
-//        workbook.close();
-//    }
-
-
-
-//    private String getCellValue(Cell cell) {
-//        if (cell == null) return "";
-//        switch(cell.getCellType()) {
-//            case STRING: return cell.getStringCellValue();
-//            case NUMERIC: return String.valueOf((int)cell.getNumericCellValue());
-//            case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
-//            default: return "";
-//        }
-//    }
-
     @Transactional
     public ImportResult importTicketsFromExcel(InputStream is, String companyId) throws IOException {
         List<String> errors = new ArrayList<>();
