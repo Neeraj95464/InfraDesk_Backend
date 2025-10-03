@@ -144,7 +144,7 @@ public class EmployeeController {
     public ResponseEntity<String> createEmployee(
             @PathVariable String companyId,
             @RequestBody @Validated EmployeeRequestDTO dto) {
-        System.out.println("Request received "+dto);
+//        System.out.println("Request received "+dto);
         employeeService.createEmployeeWithUser(companyId, dto);
         return ResponseEntity.ok("Employee and User created successfully");
     }

@@ -3,6 +3,8 @@ package com.InfraDesk.repository;
 import com.InfraDesk.entity.Company;
 import com.InfraDesk.entity.TicketAssignmentRule;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Arrays;
@@ -13,6 +15,10 @@ public interface TicketAssignmentRuleRepository extends JpaRepository<TicketAssi
     List<TicketAssignmentRule> findByCompanyIdOrderByPriorityDesc(Long companyId);
 
     List<TicketAssignmentRule> findByCompanyIdAndDepartmentIdAndLocationIdOrderByPriorityDesc(Long id, Long id1, Long id2);
+
+//    List<TicketAssignmentRule> findByCompanyIdAndDepartmentIdAndLocationIdOrderByPriorityDesc(Long companyId, Long departmentId, Long locationId);
+
+    List<TicketAssignmentRule> findByCompanyIdAndDepartmentIdAndLocationIsNullOrderByPriorityDesc(Long companyId, Long departmentId);
 
     // Fetch all rules for a company ordered by priority descending
     List<TicketAssignmentRule> findByCompanyOrderByPriorityDesc(Company company);

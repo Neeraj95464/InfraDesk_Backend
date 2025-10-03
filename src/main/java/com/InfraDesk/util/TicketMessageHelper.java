@@ -8,6 +8,7 @@ import com.InfraDesk.mapper.TicketMessageMapper;
 import com.InfraDesk.repository.TicketMessageRepository;
 import com.InfraDesk.repository.TicketRepository;
 import com.InfraDesk.repository.UserRepository;
+import com.InfraDesk.service.EmployeeService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,16 +27,25 @@ public class TicketMessageHelper {
     private final TicketRepository ticketRepository;
     private final TicketMessageRepository ticketMessageRepository;
     private final AuthUtils authUtils;
+    private final EmployeeService employeeService;
 
     @Transactional
     public TicketMessageDTO addMessage(TicketMessageRequest req, String companyId) {
         // 1. Resolve author
-        User author = authUtils.getAuthenticatedUser()
-                .orElseGet(() -> userRepository.findByEmail(req.getSenderEmail())
-                        .orElseThrow(() -> new BusinessException(
-                                "User not found with email: " + req.getSenderEmail()
-                        ))
-                );
+        User author;
+
+        if (req.getSenderEmail() != null && !req.getSenderEmail().isBlank()) {
+            // First try by email
+            author = userRepository.findByEmail(req.getSenderEmail())
+                    .orElseGet(
+                            ()->employeeService
+                                    .createExternalUserWithMembership(companyId,req.getSenderEmail(),req.getSenderEmail())
+                    );
+        } else {
+            // Fallback to authenticated user
+            author = authUtils.getAuthenticatedUser()
+                    .orElseThrow(() -> new BusinessException("Authenticated user not found"));
+        }
 
         // 2. Find ticket
         Ticket ticket = ticketRepository.findByPublicIdAndCompany_PublicId(req.getTicketId(), companyId)
@@ -47,6 +57,8 @@ public class TicketMessageHelper {
                 .author(author)
                 .body(req.getBody())
                 .internalNote(Boolean.TRUE.equals(req.getInternalNote()))
+                .emailMessageId(req.getEmailMessageId())
+                .inReplyTo(req.getInReplyTo())
                 .createdAt(LocalDateTime.now())
                 .build();
 

@@ -53,12 +53,26 @@ public class TicketMapper {
                 .companyId(ticket.getCompany().getPublicId())
 
                 .createdByUserId(ticket.getCreatedBy() != null ? ticket.getCreatedBy().getPublicId() : null)
-                .createdByUserName(ticket.getCreatedBy() != null ?
-                        ticket.getCreatedBy().getEmployeeProfiles().getFirst().getName() : null)
+//                .createdByUserName(ticket.getCreatedBy() != null ?
+//                        ticket.getCreatedBy().getEmail(): null)
+                .createdByUserName(
+                        (ticket.getCreatedBy() != null
+                                && ticket.getCreatedBy().getEmployeeProfiles() != null
+                                && !ticket.getCreatedBy().getEmployeeProfiles().isEmpty())
+                                ? ticket.getCreatedBy().getEmployeeProfiles().get(0).getName()  // use employee name
+                                : (ticket.getCreatedBy() != null ? ticket.getCreatedBy().getEmail() : "")
+                )
 
                 .assigneeUserId(ticket.getAssignee() != null ? ticket.getAssignee().getPublicId() : null)
-                .assigneeUserName(ticket.getAssignee() != null ?
-                        ticket.getAssignee().getEmployeeProfiles().getFirst().getName() : null)
+//                .assigneeUserName(ticket.getAssignee() != null ?
+//                        ticket.getAssignee().getEmail() : null)
+                .assigneeUserName(
+                        (ticket.getAssignee() != null
+                                && ticket.getAssignee().getEmployeeProfiles() != null
+                                && !ticket.getAssignee().getEmployeeProfiles().isEmpty())
+                                ? ticket.getAssignee().getEmployeeProfiles().get(0).getName()  // use employee name
+                                : (ticket.getAssignee() != null ? ticket.getAssignee().getEmail() : "")
+                )
 
                 .locationId(ticket.getLocation() != null ? ticket.getLocation().getPublicId() : null)
                 .locationName(ticket.getLocation() != null ? ticket.getLocation().getName() : null)

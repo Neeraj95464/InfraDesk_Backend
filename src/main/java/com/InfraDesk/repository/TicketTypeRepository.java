@@ -28,6 +28,10 @@ public interface TicketTypeRepository extends JpaRepository<TicketType, Long> {
             String name,
             Pageable pageable
     );
+    Optional<TicketType> findByCompanyPublicIdAndNameContainingIgnoreCaseAndActiveTrue(
+            String companyPublicId,
+            String name
+    );
 
     // 2. All active by company publicId (no search filter)
     Page<TicketType> findByCompanyPublicIdAndActiveTrue(

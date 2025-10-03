@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 @RequiredArgsConstructor
 public class EmployeeService {
 
+    private static final Logger log = LoggerFactory.getLogger(EmployeeService.class);
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
@@ -44,16 +45,11 @@ public class EmployeeService {
 
     @Transactional
     public void createEmployeeWithUser(String companyId, EmployeeRequestDTO dto) {
-        Logger logger = LoggerFactory.getLogger(getClass());
-        logger.info("createEmployeeWithUser called with companyId: {}", companyId);
-
         User authUser = authUtils.getAuthenticatedUser()
                 .orElseThrow(() -> new NotFoundException("Authenticated user not found"));
-        logger.debug("Authenticated user: {}", authUser.getEmail());
 
         Company company = companyRepository.findByPublicId(companyId)
                 .orElseThrow(() -> new NotFoundException("Company not found with id: " + companyId));
-        logger.debug("Loaded company: {}", company.getName());
 
         // Standardize and extract domain from email
         String email = dto.getEmail().toLowerCase();
@@ -62,15 +58,13 @@ public class EmployeeService {
             throw new IllegalArgumentException("Invalid email format: " + email);
         }
         String emailDomain = email.substring(atIdx + 1).trim();
-        logger.debug("Checking email domain: {}", emailDomain);
 
         isEmailDomainAllowed(company,emailDomain);
-
 
         // Find existing user or create new
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> {
-                    logger.debug("Creating new user with email {}", email);
+
                     User newUser = User.builder()
                             .email(email)
                             .password(passwordEncoder.encode(dto.getPassword()))
@@ -85,18 +79,17 @@ public class EmployeeService {
 
         Department department = departmentRepository.findByPublicIdAndCompany_PublicId(dto.getDepartmentId(), companyId)
                 .orElseThrow(() -> new NotFoundException("Department not found with id: " + dto.getDepartmentId()));
-        logger.debug("Assigned department: {}", department.getName());
 
         Site site = null;
         if (dto.getSiteId() != null) {
             site = siteRepository.findByPublicIdAndCompany_PublicId(dto.getSiteId(), companyId).orElse(null);
-            logger.debug("Assigned site: {}", site != null ? site.getName() : "null");
+
         }
 
         Location location = null;
         if (dto.getLocationId() != null) {
             location = locationRepository.findByPublicIdAndCompany_PublicId(dto.getLocationId(), companyId).orElse(null);
-            logger.debug("Assigned location: {}", location != null ? location.getName() : "null");
+
         }
 
         Employee employee = Employee.builder()
@@ -116,7 +109,7 @@ public class EmployeeService {
                 .build();
 
         employeeRepository.save(employee);
-        logger.info("Employee {} saved for company {}", employee.getName(), company.getName());
+
 
         if (!membershipRepository.existsByUserAndCompany(user, company)) {
             Membership membership = Membership.builder()
@@ -129,9 +122,9 @@ public class EmployeeService {
                     .createdBy(authUser.getEmployeeProfiles().getFirst().getName())
                     .build();
             membershipRepository.save(membership);
-            logger.info("Membership added for user {} in company {}", user.getEmail(), company.getName());
+
         } else {
-            logger.debug("Membership already exists for user {} in company {}", user.getEmail(), company.getName());
+            log.info("user membership exists already {} ",user);
         }
     }
 
@@ -178,6 +171,44 @@ public class EmployeeService {
         }
 
     }
+
+    @Transactional
+    public User createExternalUserWithMembership(String companyId, String email, String name) {
+        Company company = companyRepository.findByPublicId(companyId)
+                .orElseThrow(() -> new NotFoundException("Company not found with id: " + companyId));
+
+        User user = userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    User newUser = User.builder()
+                            .email(email)
+                            .password(passwordEncoder.encode("Welcome123"))                 // Password blank or random for guests
+                            .role(Role.EXTERNAL_USER)      // A guest/limited role
+                            .isActive(true)
+                            .isDeleted(false)
+                            .createdAt(LocalDateTime.now())
+                            .createdBy("SYSTEM")           // Or other identifier
+                            .build();
+                    // Optionally store name if possible (add 'name' field to User)
+                    return userRepository.save(newUser);
+                });
+
+        // Create membership if not already exists
+        if (!membershipRepository.existsByUserAndCompany(user, company)) {
+            Membership membership = Membership.builder()
+                    .user(user)
+                    .company(company)
+                    .role(Role.EXTERNAL_USER)
+                    .isDeleted(false)
+                    .isActive(true)
+                    .createdAt(LocalDateTime.now())
+                    .createdBy("SYSTEM")
+                    .build();
+            membershipRepository.save(membership);
+        }
+        return user;
+    }
+
+
 
 
     public PaginatedResponse<EmployeeResponseDTO> getAllEmployees(String companyId, int page, int size) {

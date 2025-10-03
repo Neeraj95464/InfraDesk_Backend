@@ -138,7 +138,7 @@ public class CompanyDomainController {
     public ResponseEntity<ApiResponse<List<String>>> addExtraDomains(
             @PathVariable String companyId,
             @RequestBody AddDomainsRequest request) {
-        System.out.println("Request Received with "+companyId +" "+request);
+//        System.out.println("Request Received with "+companyId +" "+request);
         List<CompanyDomainDTO> saved = companyDomainService.addExtraDomains(request.getDomains(), companyId);
 
         // Map DTOs to domain strings

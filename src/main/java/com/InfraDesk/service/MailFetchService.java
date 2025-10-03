@@ -1,5 +1,6 @@
 package com.InfraDesk.service;
 
+import com.InfraDesk.config.WebClientConfig;
 import com.InfraDesk.entity.MailIntegration;
 import com.InfraDesk.repository.MailIntegrationRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +11,15 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.util.UriUtils;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -21,20 +29,17 @@ public class MailFetchService {
     private final MailIntegrationRepository repo;
     private final MailAuthService authService;
     private final MailProcessorService processor; // see below
-    private final WebClient webClient = WebClient.create();
+    private final WebClient webClient;
     private static final Logger log = LoggerFactory.getLogger(MailFetchService.class);
 
 
     @Scheduled(fixedDelayString = "${mail.poll.interval:30000}")
     public void pollAll() {
-//        log.info("Polling Started");
         List<MailIntegration> list = repo.findByEnabledTrue();
-//        log.info("Mail integrations found: " + list.size());
         for (MailIntegration m : list) {
             try {
                 pollIntegration(m);
             } catch (Exception e) {
-                // log and continue
                 e.printStackTrace();
             }
         }
@@ -56,14 +61,31 @@ public class MailFetchService {
     }
 
     private void pollGmail(MailIntegration m, String accessToken) {
+
+        // Build final query string before lambda
+        String baseQuery = "in:inbox is:unread";
+
+        // Example: after yesterday
+        LocalDate date = LocalDate.now().minusDays(2);
+        long epochSeconds = date.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
+
+        String finalQuery = baseQuery + " after:" + epochSeconds; // <- effectively final
+
         Map resp =null;
         try {
-           resp = webClient.get()
-                    .uri("https://gmail.googleapis.com/gmail/v1/users/me/messages?q=in:inbox is:unread")
+             resp = webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .scheme("https")
+                            .host("gmail.googleapis.com")
+                            .path("/gmail/v1/users/me/messages")
+                            .queryParam("q", finalQuery)   // <--- pass RAW query, WebClient encodes safely
+                            .build()
+                    )
                     .headers(h -> h.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
+
         } catch (WebClientResponseException e) {
             log.error("Gmail API error: Status = {}, Body = {}", e.getRawStatusCode(), e.getResponseBodyAsString());
             throw e;

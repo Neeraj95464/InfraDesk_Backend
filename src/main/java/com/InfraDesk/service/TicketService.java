@@ -16,6 +16,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,8 +26,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.awt.*;
-import java.awt.Font;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TicketService {
 
+    private static final Logger log = LoggerFactory.getLogger(TicketService.class);
     private final TicketRepository ticketRepository;
     private final TicketMessageRepository messageRepository;
     private final TicketAttachmentRepository attachmentRepository;
@@ -50,6 +51,10 @@ public class TicketService {
     private final LocationRepository locationRepository;
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
+    private final MailIntegrationRepository mailIntegrationRepository;
+    private final TicketingDepartmentConfigRepository ticketingDepartmentConfigRepository;
+    private final OutboundMailService outboundMailService;
+    private final EmployeeService employeeService;
     private final AuthUtils authUtils;
     private final TicketMessageHelper ticketMessageHelper;
 
@@ -67,9 +72,10 @@ public class TicketService {
         if (req.getCreatorEmail() != null && !req.getCreatorEmail().isBlank()) {
             // First try by email
             creator = userRepository.findByEmail(req.getCreatorEmail())
-                    .orElseThrow(() -> new BusinessException(
-                            "User not found with email: " + req.getCreatorEmail()
-                    ));
+                    .orElseGet(
+                            ()->employeeService
+                                    .createExternalUserWithMembership(companyId,req.getCreatorEmail(),req.getCreatorEmail())
+                    );
         } else {
             // Fallback to authenticated user
             creator = authUtils.getAuthenticatedUser()
@@ -78,7 +84,7 @@ public class TicketService {
 
         Department department = departmentRepository
                 .findByPublicIdAndCompany_PublicId(req.getDepartmentId(), companyId)
-                .orElseThrow(() -> new BusinessException("Department not found"));
+                .orElseThrow(() -> new BusinessException("Department not found "+req.getDepartmentId()));
 
         Location location = (req.getLocationId() != null)
                 ? locationRepository.findByPublicIdAndCompany_PublicId(req.getLocationId(), companyId)
@@ -92,9 +98,9 @@ public class TicketService {
         // 3) Allocate ticket sequence (company + department scoped)
         Long seq = ticketNumberService.nextSeq(companyId, req.getDepartmentId());
 
-        String domainSlug = slugifyDomain(company.getDomain(), 10);
+//        String domainSlug = slugifyDomain(company.getDomain(), 10);
         String deptSlug = (department != null) ? slugify(department.getName(), 5) : "GEN";
-        String publicId = String.format("%s-%s-%05d", domainSlug, deptSlug, seq);
+        String publicId = String.format("%s-%05d", deptSlug, seq);
 
 
         // 5) Create Ticket entity
@@ -125,6 +131,8 @@ public class TicketService {
                 .author(creator)
                 .body(req.getDescription())
                 .internalNote(false)
+                .emailMessageId(req.getEmailMessageId())
+                .inReplyTo(req.getInReplyTo())
                 .createdAt(LocalDateTime.now())
                 .build();
         messageRepository.save(msg);
@@ -164,14 +172,62 @@ public class TicketService {
             }
         }
 
-
         // 8) Auto-assign ticket
         assignmentService.assignTicket(t);
 
-        // 9) (Optional) Send notifications (email with subject = ticket.subject)
+        // After auto-assign ticket
+        assignmentService.assignTicket(t);
+
+        sendTicketAckMail(t,company);
 
         return t;
     }
+
+    public void sendTicketAckMail(Ticket t,Company company){
+        try {
+            TicketingDepartmentConfig ticketingEmail = ticketingDepartmentConfigRepository
+                    .findByCompanyAndDepartment(company,t.getDepartment())
+                    .orElseThrow(()->new BusinessException("Ticketing department not found "));
+            MailIntegration mailIntegration = mailIntegrationRepository
+                    .findByCompanyIdAndMailboxEmail(company.getPublicId(),ticketingEmail.getTicketEmail())
+                    .orElseThrow(()->new BusinessException("Associated mail not found for department "+ticketingEmail.getTicketEmail()));
+
+            if (mailIntegration == null || !mailIntegration.getEnabled()) {
+                log.warn("No active mail integration found for company {}, skipping notification email", company.getPublicId());
+
+            } else {
+                // Prepare recipients
+                List<String> toEmails = Collections.singletonList(t.getCreatedBy().getEmail());
+
+                // Collect assigned user emails from ticket assignments if any
+                List<String> ccEmails = (t.getAssignee() != null && t.getAssignee().getEmail() != null && !t.getAssignee().getEmail().isBlank())
+                        ? Collections.singletonList(t.getAssignee().getEmail())
+                        : Collections.emptyList();
+
+                String subject = String.format("Ticket Created: [%s] %s", t.getPublicId(), t.getSubject());
+
+                // Simple HTML body (customize as needed)
+                String htmlBody = String.format(
+                        "<p>Dear %s,</p><p>Your ticket <b>%s</b> has been created successfully.</p><p>Subject: %s</p><p>Description: %s</p><p>Status: %s</p>",
+                        getUserDisplayName(t.getCreatedBy()), t.getPublicId(), t.getSubject(), t.getDescription(), t.getStatus()
+                );
+
+                outboundMailService.sendGmailMessage(mailIntegration,t, toEmails, ccEmails, subject, htmlBody);
+                log.info("Notification email sent for ticket {}", t.getPublicId());
+            }
+        } catch (Exception mailEx) {
+            log.error("Failed to send ticket notification email for ticket {}: {}", t.getPublicId(), mailEx.getMessage(), mailEx);
+        }
+    }
+
+    public String getUserDisplayName(User user) {
+        if (user == null) return "";
+        if (user.getEmployeeProfiles() != null && !user.getEmployeeProfiles().isEmpty()) {
+            return user.getEmployeeProfiles().get(0).getName();
+        }
+        return user.getEmail();
+    }
+
 
     public static String slugify(String input, int maxLen) {
         if (input == null || input.isEmpty()) return "";

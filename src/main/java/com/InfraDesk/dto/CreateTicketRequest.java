@@ -19,6 +19,8 @@ public class CreateTicketRequest {
     private TicketStatus status;
     private List<String> ccUserIds;
     // attachments provided by controller via @RequestPart
+    private String inReplyTo;
+    private String emailMessageId;
     private List<MultipartFile> attachments;
 }
 

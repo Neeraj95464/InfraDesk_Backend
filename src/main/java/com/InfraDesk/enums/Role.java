@@ -10,6 +10,7 @@ public enum Role {
     IT_EXECUTIVE,
     HR_MANAGER,
     HR_EXECUTIVE,
-    USER
+    USER,
+    EXTERNAL_USER
 }
 

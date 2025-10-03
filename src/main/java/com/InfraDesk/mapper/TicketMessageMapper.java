@@ -65,9 +65,16 @@ public class TicketMessageMapper {
                 .publicId(msg.getPublicId())
                 .ticketId(msg.getTicket() != null ? msg.getTicket().getPublicId() : null)
                 .authorId(msg.getAuthor() != null ? msg.getAuthor().getPublicId() : null)
-                .authorName(msg.getAuthor() != null && !msg.getAuthor().getEmployeeProfiles().isEmpty()
-                        ? msg.getAuthor().getEmployeeProfiles().getFirst().getName()
-                        : "System")
+//                .authorName(msg.getAuthor() != null && !msg.getAuthor().getEmployeeProfiles().isEmpty()
+//                        ? msg.getAuthor().getEmail()
+//                        : "System")
+                .authorName(
+                        (msg.getAuthor() != null
+                                && msg.getAuthor().getEmployeeProfiles() != null
+                                && !msg.getAuthor().getEmployeeProfiles().isEmpty())
+                                ? msg.getAuthor().getEmployeeProfiles().get(0).getName()  // use employee name
+                                : (msg.getAuthor() != null ? msg.getAuthor().getEmail() : "")
+                )
                 .body(msg.getBody())
                 .internalNote(msg.getInternalNote())
                 .createdAt(msg.getCreatedAt())

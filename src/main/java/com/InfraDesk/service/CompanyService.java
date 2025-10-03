@@ -37,6 +37,8 @@ public class CompanyService {
     private final PasswordEncoder passwordEncoder;
     private final CompanyDomainRepository companyDomainRepository;
     private final AuthUtils authUtils;
+    private final TicketingDepartmentConfigRepository ticketingDepartmentConfigRepository;
+    private final TicketTypeRepository ticketTypeRepository;
     private final MembershipRepository membershipRepository;
     private final DepartmentRepository departmentRepository;
     private final PermissionRepository permissionRepository;
@@ -115,11 +117,33 @@ public class CompanyService {
         Role assignedRole = (parentCompany == null) ? Role.PARENT_ADMIN : Role.COMPANY_ADMIN;
 
         // Create default admin (User + Employee + Department + Membership)
-        createDefaultAdminUser(request, company, email, assignedRole);
+        User user = createDefaultAdminUser(request, company, email, assignedRole);
+
+        Department defaultDepartment = departmentRepository.findByNameAndCompanyAndIsDeletedFalse("IT",company)
+                .orElseThrow(()->new BusinessException("Default Department not found"));
+
+        TicketType defaultTicketType = TicketType.builder()
+                .company(company)
+                .active(true)
+                .department(departmentRepository
+                        .findByCompany_PublicId(company.getPublicId()).getFirst())
+                .description("Default ticket type created with name OTHER ")
+                .name("OTHER")
+                .build();
+        ticketTypeRepository.save(defaultTicketType);
+
+        TicketingDepartmentConfig defaultTickingDepartment = TicketingDepartmentConfig.builder()
+                .department(defaultDepartment)
+                .company(company)
+                .isActive(true)
+                .allowTicketsFromAnyDomain(true)
+                .note("Default Ticking Department ")
+                .ticketEnabled(true)
+                .build();
+        ticketingDepartmentConfigRepository
+                .save(defaultTickingDepartment);
 
         initializeCompanyPermissions(company);
-
-
 
         return companyMapper.toDto(company);
     }
@@ -147,7 +171,7 @@ public class CompanyService {
     /**
      * Creates default admin user, IT department, employee record, and membership for a company.
      */
-    private void createDefaultAdminUser(CompanyRegistrationRequest request, Company company, String email, Role role) {
+    private User createDefaultAdminUser(CompanyRegistrationRequest request, Company company, String email, Role role) {
         // 1. Create user
         User user = userRepository.save(User.builder()
                 .email(email)
@@ -213,26 +237,11 @@ public class CompanyService {
                     }
                 });
 
-//                permissionRepository.findById(code).ifPresent(permission -> {
-//                    boolean exists = rolePermissionRepository
-//                            .existsByCompanyAndRoleAndPermission(company, role, permission); // pass enum, not entity
 //
-//                    if (!exists) {
-//                        RolePermission rp = RolePermission.builder()
-//                                .company(company)
-//                                .role(role)
-//                                .permission(permission.getCode()) // pass enum here as well
-//                                .allowed(true)
-//                                .build();
-//                        rolePermissionRepository.save(rp);
-//                    }
-//                });
-
             });
         });
 
-
-        log.info("Default admin user created for company {} with role {}", company.getId(), role);
+        return user;
     }
 
     private void validateDomainsNotInUse(Set<String> domains) {

@@ -14,6 +14,8 @@ public class TicketMessageRequest {
     private String body;
     private Boolean internalNote = Boolean.FALSE;
     private String senderEmail;
+    private String inReplyTo;
+    private String emailMessageId;
 
     // for uploaded files
     private List<MultipartFile> attachments;

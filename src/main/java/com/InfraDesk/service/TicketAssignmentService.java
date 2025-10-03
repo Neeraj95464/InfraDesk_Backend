@@ -251,12 +251,20 @@ public class TicketAssignmentService {
 
     @Transactional
     public void assignTicket(Ticket ticket) {
-        List<TicketAssignmentRule> rules = ruleRepository
-                .findByCompanyIdAndDepartmentIdAndLocationIdOrderByPriorityDesc(
-                        ticket.getCompany().getId(),
-                        ticket.getDepartment().getId(),
-                        ticket.getLocation().getId()
-                );
+        List<TicketAssignmentRule> rules = null;
+
+        if (ticket.getLocation() == null) {
+            rules = ruleRepository.findByCompanyIdAndDepartmentIdAndLocationIsNullOrderByPriorityDesc(
+                    ticket.getCompany().getId(),
+                    ticket.getDepartment().getId()
+            );
+        } else {
+            rules = ruleRepository.findByCompanyIdAndDepartmentIdAndLocationIdOrderByPriorityDesc(
+                    ticket.getCompany().getId(),
+                    ticket.getDepartment().getId(),
+                    ticket.getLocation().getId()
+            );
+        }
 
         // pick first matching rule
         for (TicketAssignmentRule rule : rules) {

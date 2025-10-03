@@ -105,14 +105,14 @@ public class MailAuthController {
         String companyId = null;
         if (state != null && !state.isEmpty()) {
             companyId = state; // decode if you encoded before
-            System.out.println("Received companyId from state param: " + companyId);
+//            System.out.println("Received companyId from state param: " + companyId);
         } else {
             // fallback or error handling if companyId missing
             System.err.println("companyId not found in OAuth state parameter");
             throw new BusinessException("Company ID missing in OAuth flow");
         }
 
-        System.out.println("company public id is "+companyId);
+//        System.out.println("company public id is "+companyId);
 
         if ("gmail".equalsIgnoreCase(provider)) {
             try {
@@ -127,7 +127,7 @@ public class MailAuthController {
                                 "&grant_type=authorization_code")
                         .retrieve().bodyToMono(Map.class).block();
 
-                System.out.println("Token response: " + tokenResp);
+//                System.out.println("Token response: " + tokenResp);
 
                 if (tokenResp == null || !tokenResp.containsKey("access_token")) {
                     System.err.println("Failed to retrieve access token from token response");
@@ -149,7 +149,7 @@ public class MailAuthController {
                     throw new RuntimeException("No email in userinfo response");
                 }
 
-                System.out.println("Gmail profile: " + profile);
+//                System.out.println("Gmail profile: " + profile);
 
                 if (profile == null || !profile.containsKey("email")) {
                     System.err.println("Failed to retrieve email from userinfo response");
@@ -187,7 +187,7 @@ public class MailAuthController {
                 repo.save(integration);
 
 
-                System.out.println("Gmail integration saved for companyId: " + companyId + ", email: " + emailAddress);
+//                System.out.println("Gmail integration saved for companyId: " + companyId + ", email: " + emailAddress);
 
                 return "redirect:" + "http://localhost:5173/app/mail-connected?status=ok";
 

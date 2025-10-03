@@ -29,4 +29,10 @@ public interface TicketingDepartmentConfigRepository extends JpaRepository<Ticke
         java.util.Optional<TicketingDepartmentConfig> findByPublicId(String publicId);
 
     Optional<TicketingDepartmentConfig> findByCompanyAndDepartment(Company company, Department department);
+
+    @Query("SELECT tdc FROM TicketingDepartmentConfig tdc JOIN FETCH tdc.department WHERE tdc.ticketEmail = :email AND tdc.isActive = true")
+    Optional<TicketingDepartmentConfig> findWithDepartmentByTicketEmail(@Param("email") String email);
+
+
+    Optional<TicketingDepartmentConfig> findByTicketEmailAndIsActiveTrue(String email);
 }

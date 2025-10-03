@@ -73,7 +73,7 @@ public class RolePermissionAdminService {
                 map.get(rp.getRole()).add(rp.getPermission().name());
             }
         }
-
+//        System.out.println("permissions are "+map);
         return map;
     }
 

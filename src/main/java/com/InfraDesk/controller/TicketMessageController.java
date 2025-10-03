@@ -20,26 +20,6 @@ public class TicketMessageController {
 
     private final TicketMessageService ticketMessageService;
 
-//    @PostMapping
-//    @PreAuthorize("@perm.check(#companyId, 'TICKET_VIEW')")
-//    public ResponseEntity<ApiResponse<TicketMessageDTO>> addMessage(
-//            @PathVariable String companyId,
-//            @PathVariable String ticketId,
-//            @Valid @RequestBody TicketMessageRequest req
-//    ) {
-//        req.setTicketId(ticketId);
-//
-//        TicketMessageDTO created = ticketMessageService.addMessage(req, companyId);
-//
-//        return ResponseEntity.ok(
-//                ApiResponse.<TicketMessageDTO>builder()
-//                        .success(true)
-//                        .message("Message added to ticket")
-//                        .data(created)
-//                        .build()
-//        );
-//    }
-
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@perm.check(#companyId, 'TICKET_VIEW')")
     public ResponseEntity<ApiResponse<TicketMessageDTO>> addMessage(
@@ -48,7 +28,6 @@ public class TicketMessageController {
             @Valid @ModelAttribute TicketMessageRequest req   // <-- must use @ModelAttribute for multipart!
     ) throws Exception {
         req.setTicketId(ticketId);
-
 
         TicketMessageDTO created = ticketMessageService.addMessage(req, companyId);
 

@@ -65,36 +65,6 @@ public class TicketingDepartmentConfigService {
         return TicketingDepartmentConfigMapper.toDto(entity);
     }
 
-//    public TicketingDepartmentConfigDTO createConfig(TicketingDepartmentConfigCreateDTO createDTO) {
-//        Company company = companyRepository.findByPublicId(createDTO.getCompanyPublicId())
-//                .orElseThrow(() -> new EntityNotFoundException("Company not found"));
-//
-//        // Standardize and extract domain from email
-//        String email = createDTO.getTicketEmail().toLowerCase();
-//        int atIdx = email.indexOf('@');
-//        if (atIdx < 0 || atIdx >= email.length() - 1) {
-//            throw new IllegalArgumentException("Invalid email format: " + email);
-//        }
-//        String emailDomain = email.substring(atIdx + 1).trim();
-//
-//        isEmailDomainAllowed(company,emailDomain);
-//
-//        Department department = departmentRepository
-//                .findByPublicIdAndCompany_PublicId(createDTO.getDepartmentPublicId(),company.getPublicId())
-//                .orElseThrow(() -> new EntityNotFoundException("Department not found"));
-//
-//        TicketingDepartmentConfig configEntity = TicketingDepartmentConfigMapper.toEntity(createDTO);
-//        configEntity.setCompany(company);
-//        configEntity.setDepartment(department);
-//
-//        if (configEntity.getPublicId() == null) {
-//            configEntity.setPublicId(UUID.randomUUID().toString());
-//        }
-//
-//        TicketingDepartmentConfig saved = configRepository.save(configEntity);
-//        return TicketingDepartmentConfigMapper.toDto(saved);
-//    }
-
     public TicketingDepartmentConfigDTO createConfig(TicketingDepartmentConfigCreateDTO createDTO) {
         // Fetch company by publicId
         Company company = companyRepository.findByPublicId(createDTO.getCompanyPublicId())
@@ -227,13 +197,16 @@ public class TicketingDepartmentConfigService {
 
         // Also update department and company references if needed
         if (updateDTO.getCompanyPublicId() != null) {
-            var company = new com.InfraDesk.entity.Company();
-            company.setPublicId(updateDTO.getCompanyPublicId());
+            Company company = companyRepository.findByPublicId(updateDTO.getCompanyPublicId())
+                    .orElseThrow(() -> new EntityNotFoundException("Company not found"));
             existing.setCompany(company);
+
         }
+
         if (updateDTO.getDepartmentPublicId() != null) {
-            var department = new com.InfraDesk.entity.Department();
-            department.setPublicId(updateDTO.getDepartmentPublicId());
+            Department department = departmentRepository
+                    .findByPublicIdAndCompany_PublicId(updateDTO.getDepartmentPublicId(),updateDTO.getCompanyPublicId())
+                    .orElseThrow(() -> new EntityNotFoundException("Department not found: " + updateDTO.getDepartmentPublicId()));
             existing.setDepartment(department);
         }
 
