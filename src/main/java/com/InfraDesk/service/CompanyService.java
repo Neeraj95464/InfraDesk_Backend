@@ -405,5 +405,42 @@ public class CompanyService {
     }
 
 
+//    @Transactional
+//    public String generateNextAssetTag(String companyId) {
+//        Company company = companyRepository.findByPublicId(companyId)
+//                .orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyId));
+//        long seq = company.getAssetSequence() + 1;
+//        company.setAssetSequence(seq);
+//        companyRepository.save(company); // persist updated seq
+//
+//        String code = (company.getShortCode() != null && !company.getShortCode().isBlank())
+//                ? company.getShortCode().toUpperCase()
+//                : company.getName().replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+//        if (code.length() > 6) code = code.substring(0, 6);
+//        // Example format: ACME-000012
+//        return String.format("%s-%06d", code, seq);
+//    }
+
+    @Transactional
+    public String generateNextAssetTag(String companyId) {
+        Company company = companyRepository.findByPublicIdForUpdate(companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyId));
+
+        long seq = company.getAssetSequence() + 1;
+        company.setAssetSequence(seq);
+        // No need to explicitly save; will auto-flush on transaction commit
+
+        String code = (company.getShortCode() != null && !company.getShortCode().isBlank())
+                ? company.getShortCode().toUpperCase()
+                : company.getName().replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+
+        if (code.length() > 6) {
+            code = code.substring(0, 6);
+        }
+
+        return String.format("%s-%06d", code, seq);
+    }
+
+
 }
 

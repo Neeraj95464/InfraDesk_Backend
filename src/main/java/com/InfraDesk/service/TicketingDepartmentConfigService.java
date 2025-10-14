@@ -41,13 +41,14 @@ public class TicketingDepartmentConfigService {
      */
     public PaginatedResponse<TicketingDepartmentConfigDTO> getConfigs(String companyId, int page, int size, String search) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("department.name").ascending());
-
+        Company company = companyRepository.findByPublicId(companyId)
+                .orElseThrow(()->new BusinessException("Company not found "));
         Page<TicketingDepartmentConfig> result;
         if (search == null || search.isBlank()) {
             result = configRepository.findByCompanyPublicId(companyId, pageable);
         } else {
             String likeSearch = "%" + search.toLowerCase() + "%";
-            result = configRepository.searchByCompanyAndKeyword(companyId, likeSearch, pageable);
+            result = configRepository.searchByCompanyAndKeywordAndIsDeletedFalse(company, likeSearch, pageable);
         }
 
         // Map entity page to DTO page response
@@ -66,25 +67,20 @@ public class TicketingDepartmentConfigService {
     }
 
     public TicketingDepartmentConfigDTO createConfig(TicketingDepartmentConfigCreateDTO createDTO) {
-        // Fetch company by publicId
         Company company = companyRepository.findByPublicId(createDTO.getCompanyPublicId())
                 .orElseThrow(() -> new EntityNotFoundException("Company not found with publicId: " + createDTO.getCompanyPublicId()));
 
-        // Fetch department by publicId and company publicId
         Department department = departmentRepository.findByPublicIdAndCompany_PublicId(createDTO.getDepartmentPublicId(), company.getPublicId())
                 .orElseThrow(() -> new EntityNotFoundException("Department not found with publicId: " + createDTO.getDepartmentPublicId()));
 
-        // Check for existing soft deleted config for same company + department
-        Optional<TicketingDepartmentConfig> existingOpt = configRepository.findByCompanyAndDepartment(company, department);
+        Optional<TicketingDepartmentConfig> existingOpt =
+                configRepository.findAnyIncludingDeleted(company.getId(), department.getId()); // disregarding isDeleted
 
         TicketingDepartmentConfig configEntity;
-
         if (existingOpt.isPresent()) {
             configEntity = existingOpt.get();
-            if (Boolean.TRUE.equals(configEntity.getIsDeleted())) {
-                // Restore soft-deleted config
-                configEntity.setIsDeleted(false);
-            }
+            configEntity.setIsDeleted(false);
+            configEntity.setIsActive(true);
         } else {
             configEntity = new TicketingDepartmentConfig();
             configEntity.setPublicId(UUID.randomUUID().toString());
@@ -92,47 +88,40 @@ public class TicketingDepartmentConfigService {
             configEntity.setDepartment(department);
         }
 
-        // Set core fields from DTO
+        // Set mutable fields from DTO (always update, even if restoring)
         configEntity.setTicketEnabled(createDTO.getTicketEnabled() != null ? createDTO.getTicketEnabled() : Boolean.TRUE);
         configEntity.setTicketEmail(createDTO.getTicketEmail() != null ? createDTO.getTicketEmail().toLowerCase().trim() : null);
         configEntity.setNote(createDTO.getNote());
-        configEntity.setIsActive(createDTO.getIsActive() != null ? createDTO.getIsActive() : Boolean.TRUE);
-        configEntity.setIsDeleted(createDTO.getIsDeleted() != null ? createDTO.getIsDeleted() : Boolean.FALSE);
+        configEntity.setIsActive(Boolean.TRUE); // Force active on creation/restoration
+        configEntity.setIsDeleted(Boolean.FALSE); // Force not deleted
 
-        // Set new domain control fields
+        // Allowed domains setup
         Boolean allowAny = createDTO.getAllowTicketsFromAnyDomain();
         if (allowAny == null) allowAny = Boolean.TRUE;
         configEntity.setAllowTicketsFromAnyDomain(allowAny);
 
         if (allowAny) {
-            // Clear any allowed domains if open to any domain
             configEntity.getAllowedTicketDomains().clear();
         } else {
-            Set<String> domains = createDTO.getAllowedDomainsForTicket() != null ?
-                    createDTO.getAllowedDomainsForTicket()
-                            .stream()
-                            .map(String::toLowerCase)
-                            .map(String::trim)
-                            .filter(d -> !d.isEmpty())
-                            .collect(Collectors.toSet())
-                    : new HashSet<>();
+            Set<String> domains = createDTO.getAllowedDomainsForTicket() != null
+                    ? createDTO.getAllowedDomainsForTicket().stream()
+                    .map(String::toLowerCase)
+                    .map(String::trim)
+                    .filter(d -> !d.isEmpty())
+                    .collect(Collectors.toSet()) : new HashSet<>();
             configEntity.getAllowedTicketDomains().clear();
             configEntity.getAllowedTicketDomains().addAll(domains);
         }
 
-        // Validate ticketEmail domain if domain restriction enabled
+        // Validate ticketEmail if needed
         if (configEntity.getTicketEmail() != null && !allowAny) {
             int atIndex = configEntity.getTicketEmail().indexOf('@');
             if (atIndex < 0 || atIndex >= configEntity.getTicketEmail().length() - 1) {
                 throw new IllegalArgumentException("Invalid ticketEmail format: " + configEntity.getTicketEmail());
             }
-            String emailDomain = configEntity.getTicketEmail().substring(atIndex + 1);
-            if (!configEntity.getAllowedTicketDomains().contains(emailDomain)) {
-                throw new IllegalArgumentException("Email domain of ticketEmail is not allowed: " + emailDomain);
-            }
+            // Optionally check: is domain of ticketEmail in allowed domains
         }
 
-        // Save (new or updated)
         TicketingDepartmentConfig saved = configRepository.save(configEntity);
         return TicketingDepartmentConfigMapper.toDto(saved);
     }
@@ -181,31 +170,42 @@ public class TicketingDepartmentConfigService {
 
     }
 
-    /**
-     * Update existing config by publicId using create DTO
-     */
+    @Transactional
     public TicketingDepartmentConfigDTO updateConfig(String publicId, TicketingDepartmentConfigCreateDTO updateDTO) {
         TicketingDepartmentConfig existing = configRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new EntityNotFoundException("Config not found: " + publicId));
 
-        // Map from DTO to entity but update fields only (do not overwrite createdAt, etc.)
-        existing.setTicketEnabled(updateDTO.getTicketEnabled());
-        existing.setTicketEmail(updateDTO.getTicketEmail());
-        existing.setNote(updateDTO.getNote());
-        existing.setIsActive(updateDTO.getIsActive());
-        existing.setIsDeleted(updateDTO.getIsDeleted());
+        // --- Basic field updates ---
+        if (updateDTO.getTicketEnabled() != null) existing.setTicketEnabled(updateDTO.getTicketEnabled());
+        if (updateDTO.getTicketEmail() != null) existing.setTicketEmail(updateDTO.getTicketEmail());
+        if (updateDTO.getNote() != null) existing.setNote(updateDTO.getNote());
+        if (updateDTO.getIsActive() != null) existing.setIsActive(updateDTO.getIsActive());
+        if (updateDTO.getIsDeleted() != null) existing.setIsDeleted(updateDTO.getIsDeleted());
 
-        // Also update department and company references if needed
-        if (updateDTO.getCompanyPublicId() != null) {
-            Company company = companyRepository.findByPublicId(updateDTO.getCompanyPublicId())
-                    .orElseThrow(() -> new EntityNotFoundException("Company not found"));
-            existing.setCompany(company);
-
+        // --- Domain control logic ---
+        if (Boolean.TRUE.equals(updateDTO.getAllowTicketsFromAnyDomain())) {
+            existing.setAllowTicketsFromAnyDomain(true);
+            existing.getAllowedTicketDomains().clear(); // unrestricted mode → clear restrictions
+        } else {
+            existing.setAllowTicketsFromAnyDomain(false);
+            if (updateDTO.getAllowedDomainsForTicket() != null && !updateDTO.getAllowedDomainsForTicket().isEmpty()) {
+                existing.setAllowedTicketDomains(updateDTO.getAllowedDomainsForTicket());
+            } else if (existing.getAllowedTicketDomains() == null || existing.getAllowedTicketDomains().isEmpty()) {
+                throw new BusinessException("Allowed domains must be provided when allowTicketsFromAnyDomain is false");
+            }
         }
 
-        if (updateDTO.getDepartmentPublicId() != null) {
-            Department department = departmentRepository
-                    .findByPublicIdAndCompany_PublicId(updateDTO.getDepartmentPublicId(),updateDTO.getCompanyPublicId())
+        // --- Update company reference (optional) ---
+        if (updateDTO.getCompanyPublicId() != null) {
+            Company company = companyRepository.findByPublicId(updateDTO.getCompanyPublicId())
+                    .orElseThrow(() -> new EntityNotFoundException("Company not found: " + updateDTO.getCompanyPublicId()));
+            existing.setCompany(company);
+        }
+
+        // --- Update department reference (optional) ---
+        if (updateDTO.getDepartmentPublicId() != null && updateDTO.getCompanyPublicId() != null) {
+            Department department = departmentRepository.findByPublicIdAndCompany_PublicId(
+                            updateDTO.getDepartmentPublicId(), updateDTO.getCompanyPublicId())
                     .orElseThrow(() -> new EntityNotFoundException("Department not found: " + updateDTO.getDepartmentPublicId()));
             existing.setDepartment(department);
         }
@@ -214,9 +214,6 @@ public class TicketingDepartmentConfigService {
         return TicketingDepartmentConfigMapper.toDto(saved);
     }
 
-    /**
-     * Soft delete by publicId
-     */
     public void deleteConfig(String publicId) {
         TicketingDepartmentConfig existing = configRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new EntityNotFoundException("Config not found: " + publicId));

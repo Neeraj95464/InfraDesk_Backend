@@ -14,9 +14,11 @@ import com.InfraDesk.util.TicketMessageHelper;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
+
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -204,7 +206,7 @@ public class TicketService {
                         ? Collections.singletonList(t.getAssignee().getEmail())
                         : Collections.emptyList();
 
-                String subject = String.format("Ticket Created: [%s] %s", t.getPublicId(), t.getSubject());
+                String subject = String.format("Ticket: [%s] %s", t.getPublicId(), t.getSubject());
 
                 // Simple HTML body (customize as needed)
                 String htmlBody = String.format(
@@ -212,7 +214,13 @@ public class TicketService {
                         getUserDisplayName(t.getCreatedBy()), t.getPublicId(), t.getSubject(), t.getDescription(), t.getStatus()
                 );
 
-                outboundMailService.sendGmailMessage(mailIntegration,t, toEmails, ccEmails, subject, htmlBody);
+                if(mailIntegration.getProvider().equals("GMAIL")){
+                    outboundMailService.sendGmailMessage(mailIntegration,t, toEmails, ccEmails, subject, htmlBody);
+
+                }else {
+                    outboundMailService.sendViaGraph(mailIntegration,t,toEmails,ccEmails,subject,htmlBody);
+                }
+
                 log.info("Notification email sent for ticket {}", t.getPublicId());
             }
         } catch (Exception mailEx) {
@@ -384,8 +392,6 @@ public class TicketService {
         }
     }
 
-
-
     // ✅ Get all tickets with pagination
         public PaginatedResponse<TicketDTO> getAllTickets(String companyId, int page, int size) {
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -465,6 +471,8 @@ public class TicketService {
             ticketMessageHelper.addMessage(request, companyId);
         }
 
+
+
         return TicketMapper.toDto(updated);
     }
 
@@ -473,6 +481,7 @@ public class TicketService {
     public TicketDTO updateTicket(String ticketId, String companyId, TicketDTO dto) {
         Ticket ticket = ticketRepository.findByPublicIdAndCompany_PublicId(ticketId, companyId)
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId));
+
 
         List<String> changes = new ArrayList<>();
 
@@ -487,19 +496,6 @@ public class TicketService {
             changes.add("Description updated");
             ticket.setDescription(dto.getDescription());
         }
-
-        // Status
-//        if (dto.getStatus() != null) {
-//            TicketStatus newStatus = dto.getStatus();
-//            if(newStatus==TicketStatus.CLOSED){
-//                throw new BusinessException("Ticket can't be closed directly");
-//            } else if (newStatus==ticket.getStatus()) {
-//
-//            } else if(!newStatus.equals(ticket.getStatus())) {
-//                changes.add("Status changed from " + ticket.getStatus() + " → " + newStatus);
-//                ticket.setStatus(newStatus);
-//            }
-//        }
 
         if (dto.getStatus() != null) {
             TicketStatus newStatus = dto.getStatus();
@@ -516,6 +512,9 @@ public class TicketService {
             else if (!newStatus.equals(currentStatus)) {
                 changes.add("Status changed from " + currentStatus + " → " + newStatus);
                 ticket.setStatus(newStatus);
+                if(newStatus == TicketStatus.RESOLVED){
+                    sendTicketResolvedMail(ticket,ticket.getCompany());
+                }
             }
         }
 
@@ -607,6 +606,103 @@ public class TicketService {
         return TicketMapper.toDto(updated);
     }
 
+    public void sendTicketResolvedMail(Ticket t, Company company) {
+        try {
+            TicketingDepartmentConfig ticketingEmail = ticketingDepartmentConfigRepository
+                    .findByCompanyAndDepartment(company, t.getDepartment())
+                    .orElseThrow(() -> new BusinessException("Ticketing department not found "));
+            MailIntegration mailIntegration = mailIntegrationRepository
+                    .findByCompanyIdAndMailboxEmail(company.getPublicId(), ticketingEmail.getTicketEmail())
+                    .orElseThrow(() -> new BusinessException("Associated mail not found for department " + ticketingEmail.getTicketEmail()));
+
+            if (mailIntegration == null || !mailIntegration.getEnabled()) {
+                log.warn("No active mail integration found for company {}, skipping notification email", company.getPublicId());
+                return;
+            }
+
+            // Prepare recipients
+            List<String> toEmails = Collections.singletonList(t.getCreatedBy().getEmail());
+
+            // CC assigned user if present
+            List<String> ccEmails = (t.getAssignee() != null && t.getAssignee().getEmail() != null && !t.getAssignee().getEmail().isBlank())
+                    ? Collections.singletonList(t.getAssignee().getEmail())
+                    : Collections.emptyList();
+
+            String subject = String.format("Ticket Resolved: [%s] %s", t.getPublicId(), t.getSubject());
+
+            // Generate rating buttons html (1 to 5 stars linking to rating endpoint)
+//            String ratingBaseUrl = "https://yourportal.example.com/ticket/" + t.getPublicId() + "/rate?stars=";
+
+            String ratingBaseUrl = "http://localhost:8080/api/tickets/" + t.getPublicId() + "/feedback?stars=";
+//            StringBuilder ratingButtons = new StringBuilder();
+//            for (int i = 1; i <= 5; i++) {
+//                ratingButtons.append(String.format(
+//                        "<a href=\"%s%d\" style=\"text-decoration:none; font-size:24px; margin-right:5px;\">%s</a>",
+//                        ratingBaseUrl, i, "&#9733;")); // Unicode star symbol
+//            }
+
+            StringBuilder ratingButtons = new StringBuilder();
+
+//            String ratingBaseUrl = "https://yourportal.example.com/tickets/" + t.getPublicId() + "/rate?stars=";
+
+//            StringBuilder ratingButtons = new StringBuilder();
+//
+//            String ratingBaseUrl = "https://yourportal.example.com/tickets/" + t.getPublicId() + "/rate?stars=";
+
+// Colors from red to green for stars 1 to 5
+
+            String[] colors = {
+                    "#ff0000",   // 1 star (red)
+                    "#ff4500",   // 2 stars (orange red)
+                    "#ffa500",   // 3 stars (orange)
+                    "#9acd32",   // 4 stars (yellow green)
+                    "#008000"    // 5 stars (green)
+            };
+
+            ratingButtons.append("<div style='display:flex; justify-content:center; gap:8px;'>");
+            for (int i = 1; i <= 5; i++) {
+                ratingButtons.append(String.format(
+                        "<a href=\"%s%d\" style=\"text-decoration:none; font-size:32px; color:%s;\">&#9733;</a>",
+                        ratingBaseUrl, i, colors[i - 1]));
+            }
+            ratingButtons.append("</div>");
+
+
+            // HTML body with an attractive layout and message
+            String htmlBody = String.format(
+                    "<div style='font-family:sans-serif; color:#333;'>"
+                            + "<h2 style='color:#2E86C1;'>Dear %s,</h2>"
+                            + "<p>Your ticket <b>%s</b> has been <span style='color:green; font-weight:bold;'>resolved successfully</span>.</p>"
+                            + "<p><b>Subject:</b> %s</p>"
+                            + "<p><b>Description:</b> %s</p>"
+                            + "<p><b>Status:</b> %s</p>"
+                            + "<hr style='border:none; border-top:1px solid #ddd;'/>"
+                            + "<p>Please rate the service provided by the assignee:</p>"
+                            + "<p>%s</p>"
+                            + "<hr style='border:none; border-top:1px solid #ddd;'/>"
+                            + "<p style='font-style:italic; color:#555;'>If you believe the ticket is not fully resolved, you can reopen it from the portal's ticket chat section. Please do so to ensure your concern is addressed.</p>"
+                            + "</div>",
+                    getUserDisplayName(t.getCreatedBy()),
+                    t.getPublicId(),
+                    t.getSubject(),
+                    t.getDescription(),
+                    t.getStatus(),
+                    ratingButtons.toString()
+            );
+
+            if (mailIntegration.getProvider().equals("GMAIL")) {
+                outboundMailService.sendGmailMessage(mailIntegration, t, toEmails, ccEmails, subject, htmlBody);
+            } else {
+                outboundMailService.sendViaGraph(mailIntegration, t, toEmails, ccEmails, subject, htmlBody);
+            }
+
+            log.info("Ticket resolved notification email sent for ticket {}", t.getPublicId());
+
+        } catch (Exception mailEx) {
+            log.error("Failed to send ticket resolved email for ticket {}: {}", t.getPublicId(), mailEx.getMessage(), mailEx);
+        }
+    }
+
 
     // ✅ Delete ticket (soft delete handled by @SQLDelete)
         public void deleteTicket(String id, String companyId) {
@@ -688,7 +784,7 @@ public class TicketService {
     }
 
 
-        public void writeTicketsToExcel(List<TicketDTO> tickets, OutputStream os) throws IOException {
+    public void writeTicketsToExcel(List<TicketDTO> tickets, OutputStream os) throws IOException {
 
         try (Workbook workbook = new XSSFWorkbook()) {
                 Sheet sheet = workbook.createSheet("Tickets");

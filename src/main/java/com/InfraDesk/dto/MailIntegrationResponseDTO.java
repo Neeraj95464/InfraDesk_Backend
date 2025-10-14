@@ -11,6 +11,7 @@ import java.time.Instant;
 @Setter
 @Builder
 public class MailIntegrationResponseDTO {
+    private String publicId;
     private String provider;
     private String mailboxEmail;
     private Boolean enabled;

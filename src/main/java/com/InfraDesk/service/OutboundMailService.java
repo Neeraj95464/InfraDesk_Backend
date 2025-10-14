@@ -5,11 +5,16 @@ import com.InfraDesk.entity.MailIntegration;
 import com.InfraDesk.entity.Ticket;
 import com.InfraDesk.entity.TicketMessage;
 import com.InfraDesk.repository.TicketMessageRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.Authenticator;
 import jakarta.mail.MessagingException;
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+// other imports
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,12 +23,11 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,233 +36,280 @@ public class OutboundMailService {
     private final MailAuthService authService;
     private final WebClient webClient = WebClient.create();
     private final SimpleEncryptor encryptor;
+    private final ObjectMapper mapper = new ObjectMapper();
     private final TicketMessageRepository ticketMessageRepository;
 
-    public void sendViaGraph(MailIntegration integration, String to, String subject, String htmlBody) {
-        String token = authService.getDecryptedAccessToken(integration);
-        Map message = Map.of("message", Map.of(
-                "subject", subject,
-                "body", Map.of("contentType", "HTML", "content", htmlBody),
-                "toRecipients", List.of(Map.of("emailAddress", Map.of("address", to)))
-        ));
-        webClient.post()
-                .uri("https://graph.microsoft.com/v1.0/me/sendMail")
-                .headers(h -> h.setBearerAuth(token))
-                .bodyValue(message)
-                .retrieve().bodyToMono(Void.class).block();
-    }
 
-
-//    public void sendUsingSmtp(MailIntegration integration, String to, String subject, String htmlBody) throws MessagingException {
-//        JavaMailSenderImpl sender = new JavaMailSenderImpl();
-//        sender.setHost(integration.getSmtpHost());
-//        sender.setPort(integration.getSmtpPort());
-//        sender.setUsername(integration.getMailboxEmail());
-//        sender.setPassword(encryptor.decrypt(integration.getEncryptedSmtpPassword()));
-//
-//        Properties props = sender.getJavaMailProperties();
-//        props.put("mail.transport.protocol", "smtp");
-//        props.put("mail.smtp.auth", String.valueOf(true));
-//        props.put("mail.smtp.starttls.enable", String.valueOf(integration.getSmtpTls() != null && integration.getSmtpTls()));
-//        props.put("mail.debug", "false");
-//
-//        MimeMessage message = sender.createMimeMessage();
-//        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-//        helper.setFrom(integration.getMailboxEmail());
-//        helper.setTo(to);
-//        helper.setSubject(subject);
-//        helper.setText(htmlBody, true);
-//        sender.send(message);
-//    }
-
-//        public void sendMailForGmail(
-//                MailIntegration integration,
-//                List<String> toEmails,
-//                List<String> ccEmails,
-//                String subject,
-//                String htmlBody
-//        ) throws MessagingException {
-//            if (toEmails == null || toEmails.isEmpty()) {
-//                throw new IllegalArgumentException("At least one recipient required");
-//            }
-//
-//            log.info("Sending email to {} with subject '{}'", toEmails.get(0), subject);
-//
-//            String oauth2AccessToken = authService.getDecryptedAccessToken(integration);
-//
-//            JavaMailSenderImpl sender = new JavaMailSenderImpl();
-////
-////            sender.setHost(integration.getSmtpHost());
-////            sender.setPort(integration.getSmtpPort());
-////            sender.setUsername(integration.getMailboxEmail());
-//
-//            sender.setHost(integration.getSmtpHost());
-//            if (integration.getSmtpPort() != null) {
-//                sender.setPort(integration.getSmtpPort());
-//            } else {
-//                sender.setPort(587); // default SMTP port for TLS
-//                log.warn("smtpPort was null, defaulting to 587");
-//            }
-//            sender.setUsername(integration.getMailboxEmail());
-//
-//            Properties props = sender.getJavaMailProperties();
-//            props.put("mail.transport.protocol", "smtp");
-//            props.put("mail.smtp.auth", "true");
-//            props.put("mail.smtp.starttls.enable", String.valueOf(Boolean.TRUE.equals(integration.getSmtpTls())));
-//            props.put("mail.smtp.ssl.trust", integration.getSmtpHost());
-//            props.put("mail.debug", "false");
-//
-//            if (oauth2AccessToken != null && !oauth2AccessToken.isBlank()) {
-//                sender.setSession(Session.getInstance(props, new Authenticator() {
-//                    @Override
-//                    protected PasswordAuthentication getPasswordAuthentication() {
-//                        return new PasswordAuthentication(integration.getMailboxEmail(), oauth2AccessToken);
-//                    }
-//                }));
-//            } else {
-//                sender.setPassword(encryptor.decrypt(integration.getEncryptedSmtpPassword()));
-//            }
-//
-//            MimeMessage message = sender.createMimeMessage();
-//            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-//            helper.setFrom(integration.getMailboxEmail());
-//            helper.setTo(toEmails.toArray(new String[0]));
-//
-//            if (ccEmails != null && !ccEmails.isEmpty()) {
-//                helper.setCc(ccEmails.toArray(new String[0]));
-//            }
-//
-//            helper.setSubject(subject);
-//            helper.setText(htmlBody, true);  // true = HTML content
-//
-//            sender.send(message);
-//
-//            log.info("Email sent successfully to {}", toEmails);
-//        }
-//
-
-
-//    public void sendMailForGmail(
+//    public void sendViaGraph(
 //            MailIntegration integration,
+//            Ticket ticket,
 //            List<String> toEmails,
 //            List<String> ccEmails,
 //            String subject,
-//            String htmlBody
-//    ) throws MessagingException {
+//            String htmlBody) {
 //
-//        if (toEmails == null || toEmails.isEmpty()) {
-//            throw new IllegalArgumentException("At least one recipient required");
-//        }
-//
-//        String oauth2AccessToken = authService.getDecryptedAccessToken(integration);
-//
-//        JavaMailSenderImpl sender = new JavaMailSenderImpl();
-//
-//        String smtpHost = integration.getSmtpHost();
-//        Integer smtpPort = integration.getSmtpPort();
-//
-//        // Determine SMTP Host and Port based on provider if missing
-//        if (smtpHost == null || smtpHost.isBlank()) {
-//            switch (integration.getProvider().toUpperCase()) {
-//                case "GMAIL":
-//                    smtpHost = "smtp.gmail.com";
-//                    smtpPort = 587; // TLS port
-//                    break;
-//                case "MICROSOFT":
-//                    smtpHost = "smtp.office365.com";
-//                    smtpPort = 587; // TLS port
-//                    break;
-//                default:
-//                    throw new IllegalStateException("SMTP Host not configured and unknown provider: " + integration.getProvider());
+//        try {
+//            if (toEmails == null || toEmails.isEmpty()) {
+//                throw new IllegalArgumentException("To recipient list must not be empty");
 //            }
+//
+//            String token = authService.getDecryptedAccessToken(integration);
+//            if (token == null || token.isBlank()) {
+//                throw new IllegalStateException("Access token is null or empty");
+//            }
+//
+//            // ✅ Build recipients (must be List<Map<String,Object>>)
+//            List<Map<String, Object>> toRecipients = toEmails.stream()
+//                    .filter(addr -> addr != null && !addr.isBlank())
+//                    .map(addr -> {
+//                        Map<String, Object> emailAddress = new HashMap<>();
+//                        emailAddress.put("address", addr.trim());
+//                        Map<String, Object> recipient = new HashMap<>();
+//                        recipient.put("emailAddress", emailAddress);
+//                        return recipient;
+//                    })
+//                    .collect(Collectors.toList());
+//
+//            List<Map<String, Object>> ccRecipients = null;
+//            if (ccEmails != null && !ccEmails.isEmpty()) {
+//                ccRecipients = ccEmails.stream()
+//                        .filter(addr -> addr != null && !addr.isBlank())
+//                        .map(addr -> {
+//                            Map<String, Object> emailAddress = new HashMap<>();
+//                            emailAddress.put("address", addr.trim());
+//                            Map<String, Object> recipient = new HashMap<>();
+//                            recipient.put("emailAddress", emailAddress);
+//                            return recipient;
+//                        })
+//                        .collect(Collectors.toList());
+//            }
+//
+//            // ✅ Build message payload
+//            Map<String, Object> body = new HashMap<>();
+//            body.put("contentType", "HTML");
+//            body.put("content", htmlBody);
+//
+//            Map<String, Object> message = new LinkedHashMap<>();
+//            message.put("subject", subject);
+//            message.put("body", body);
+//            message.put("toRecipients", toRecipients);
+//            if (ccRecipients != null && !ccRecipients.isEmpty()) {
+//                message.put("ccRecipients", ccRecipients);
+//            }
+//
+//            // Optional threading support
+//
+//        if (ticket.getInReplyTo() != null) {
+//            List<Map<String, Object>> headers = List.of(
+//                    Map.of("name", "In-Reply-To", "value", ticket.getInReplyTo()),
+//                    Map.of("name", "References", "value", ticket.getInReplyTo())
+//            );
+//            message.put("internetMessageHeaders", headers);
 //        }
 //
-//        sender.setHost(smtpHost);
-//        sender.setPort(smtpPort != null ? smtpPort : 587);
-//        sender.setUsername(integration.getMailboxEmail());
 //
-//        Properties props = sender.getJavaMailProperties();
-//        props.put("mail.transport.protocol", "smtp");
-//        props.put("mail.smtp.auth", "true");
-//        props.put("mail.smtp.starttls.enable", "true");
-//        props.put("mail.smtp.starttls.required", "true");
-//        props.put("mail.smtp.ssl.protocols", "TLSv1.2");
-//        props.put("mail.smtp.ssl.trust", smtpHost);
-//        props.put("mail.debug", "true");
+//            Map<String, Object> payload = new LinkedHashMap<>();
+//            payload.put("message", message);
+//            payload.put("saveToSentItems", true);
 //
+//            // ✅ Create draft
+//            Map<?, ?> draft = webClient.post()
+//                    .uri("https://graph.microsoft.com/v1.0/me/messages")
+//                    .headers(h -> h.setBearerAuth(token))
+//                    .contentType(MediaType.APPLICATION_JSON)
+//                    .bodyValue(message)
+//                    .retrieve()
+//                    .onStatus(status -> !status.is2xxSuccessful(), response ->
+//                            response.bodyToMono(String.class).flatMap(errorBody -> {
+//                                log.error("Graph API draft creation error: {}", errorBody);
+//                                return Mono.error(new RuntimeException("Graph draft creation error: " + errorBody));
+//                            })
+//                    )
+//                    .bodyToMono(Map.class)
+//                    .block();
 //
-//        if (oauth2AccessToken != null && !oauth2AccessToken.isBlank()) {
-//            sender.setSession(Session.getInstance(props, new Authenticator() {
-//                @Override
-//                protected PasswordAuthentication getPasswordAuthentication() {
-//                    // Use OAuth2 access token as password
-//                    return new PasswordAuthentication(integration.getMailboxEmail(), oauth2AccessToken);
-//                }
-//            }));
-//            log.info("Using OAuth2 authentication for SMTP host {} on port {}", smtpHost, sender.getPort());
-//        } else {
-//            // Fallback to SMTP username/password auth
-//            String decryptedPassword = encryptor.decrypt(integration.getEncryptedSmtpPassword());
-//            sender.setPassword(decryptedPassword);
-//            log.info("Using SMTP password authentication for SMTP host {} on port {}", smtpHost, sender.getPort());
+//            if (draft == null || !draft.containsKey("id")) {
+//                throw new IllegalStateException("Draft creation failed, no ID returned");
+//            }
+//
+//            String messageId = (String) draft.get("id");
+//            String internetMessageId = (String) draft.get("internetMessageId");
+//
+//            log.info("✅ Draft created via Graph: messageId={}, internetMessageId={}", messageId, internetMessageId);
+//
+//            // ✅ Send the draft
+//            webClient.post()
+//                    .uri("https://graph.microsoft.com/v1.0/me/messages/" + messageId + "/send")
+//                    .headers(h -> h.setBearerAuth(token))
+//                    .retrieve()
+//                    .toBodilessEntity()
+//                    .block();
+//
+//            log.info("📨 Mail sent successfully for ticket {}", ticket.getPublicId());
+//
+//            // Optionally store threading info
+//        /*
+//        if (internetMessageId != null) {
+//            ticket.setEmailMessageId(internetMessageId);
+//            ticket.setInReplyTo(internetMessageId);
 //        }
+//        */
 //
-//        log.info("Preparing email to: {} cc: {} with subject: {}", toEmails, ccEmails, subject);
-//
-//        MimeMessage message = sender.createMimeMessage();
-//        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-//        helper.setFrom(integration.getMailboxEmail());
-//        helper.setTo(toEmails.toArray(new String[0]));
-//
-//        if (ccEmails != null && !ccEmails.isEmpty()) {
-//            helper.setCc(ccEmails.toArray(new String[0]));
+//        } catch (Exception e) {
+//            log.error("❌ Failed to send mail via Graph API for ticket {}: {}",
+//                    ticket.getPublicId(), e.getMessage(), e);
 //        }
-//
-//        helper.setSubject(subject);
-//        helper.setText(htmlBody, true);  // true = HTML email content
-//
-//        sender.send(message);
-//
-//        log.info("Email sent successfully to {}", toEmails);
 //    }
 
-//    public void sendGmailMessage(MailIntegration integration,
-//                                 List<String> toEmails,
-//                                 List<String> ccEmails,
-//                                 String subject,
-//                                 String htmlBody) {
-//
-//        String accessToken = authService.getDecryptedAccessToken(integration);
-//
-//        // Build raw RFC822 message
-//        StringBuilder rawMessage = new StringBuilder();
-//        rawMessage.append("From: ").append(integration.getMailboxEmail()).append("\r\n");
-//        rawMessage.append("To: ").append(String.join(",", toEmails)).append("\r\n");
-//        if (ccEmails != null && !ccEmails.isEmpty()) {
-//            rawMessage.append("Cc: ").append(String.join(",", ccEmails)).append("\r\n");
-//        }
-//        rawMessage.append("Subject: ").append(subject).append("\r\n");
-//        rawMessage.append("Content-Type: text/html; charset=UTF-8\r\n\r\n");
-//        rawMessage.append(htmlBody);
-//
-//        // Gmail expects base64url encoding
-//        String base64UrlEncoded = Base64.getUrlEncoder()
-//                .withoutPadding()
-//                .encodeToString(rawMessage.toString().getBytes(StandardCharsets.UTF_8));
-//
-//        Map<String, String> payload = Map.of("raw", base64UrlEncoded);
-//
-//        Map response = webClient.post()
-//                .uri("https://gmail.googleapis.com/gmail/v1/users/me/messages/send")
-//                .headers(h -> h.setBearerAuth(accessToken))
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .bodyValue(payload)
-//                .retrieve()
-//                .bodyToMono(Map.class)
-//                .block();
-//
-//        log.info("Gmail send response: {}", response);
-//    }
+
+    public void sendViaGraph(
+            MailIntegration integration,
+            Ticket ticket,
+            List<String> toEmails,
+            List<String> ccEmails,
+            String subject,
+            String htmlBody) {
+
+
+        try {
+
+            // Step 1: Find last ticket message
+            TicketMessage lastMsg = ticketMessageRepository.findTopByTicketOrderByCreatedAtDesc(ticket)
+                    .orElse(null);
+
+            String lastMessageId = (lastMsg != null) ? lastMsg.getEmailMessageId() : null;
+
+            if (toEmails == null || toEmails.isEmpty()) {
+                throw new IllegalArgumentException("To recipient list must not be empty");
+            }
+
+            String token = authService.getDecryptedAccessToken(integration);
+            if (token == null || token.isBlank()) {
+                throw new IllegalStateException("Access token is null or empty");
+            }
+
+            List<Map<String, Object>> toRecipients = toEmails.stream()
+                    .filter(addr -> addr != null && !addr.isBlank())
+                    .map(addr -> {
+                        Map<String, Object> emailAddress = new HashMap<>();
+                        emailAddress.put("address", addr.trim());
+                        Map<String, Object> recipient = new HashMap<>();
+                        recipient.put("emailAddress", emailAddress);
+                        return recipient;
+                    })
+                    .collect(Collectors.toList());
+
+            List<Map<String, Object>> ccRecipients = null;
+            if (ccEmails != null && !ccEmails.isEmpty()) {
+                ccRecipients = ccEmails.stream()
+                        .filter(addr -> addr != null && !addr.isBlank())
+                        .map(addr -> {
+                            Map<String, Object> emailAddress = new HashMap<>();
+                            emailAddress.put("address", addr.trim());
+                            Map<String, Object> recipient = new HashMap<>();
+                            recipient.put("emailAddress", emailAddress);
+                            return recipient;
+                        })
+                        .collect(Collectors.toList());
+            }
+
+            Map<String, Object> body = Map.of(
+                    "contentType", "HTML",
+                    "content", htmlBody
+            );
+
+            Map<String, Object> message = new LinkedHashMap<>();
+            message.put("subject", subject);
+            message.put("body", body);
+            message.put("toRecipients", toRecipients);
+
+            if (ccRecipients != null && !ccRecipients.isEmpty()) {
+                message.put("ccRecipients", ccRecipients);
+            }
+
+            // THREADING HEADERS: Include In-Reply-To & References headers when replying
+//            if (lastMessageId != null && !lastMessageId.isBlank()) {
+//                // Use lastMsg.getEmailMessageId(), i.e. the original message internetMessageId
+//                List<Map<String, String>> headers = List.of(
+//                        Map.of("name", "In-Reply-To", "value", lastMessageId),
+//                        Map.of("name", "References", "value", lastMessageId)
+//                );
+//                message.put("internetMessageHeaders", headers);
+//            }
+
+            Map<String, Object> payload = Map.of(
+                    "message", message,
+                    "saveToSentItems", true
+            );
+
+            // Create draft message
+            Map<?, ?> draft = webClient.post()
+                    .uri("https://graph.microsoft.com/v1.0/me/messages")
+                    .headers(h -> h.setBearerAuth(token))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(message)
+                    .retrieve()
+                    .onStatus(status -> !status.is2xxSuccessful(), response ->
+                            response.bodyToMono(String.class).flatMap(errorBody -> {
+                                log.error("Graph API draft creation error: {}", errorBody);
+                                return Mono.error(new RuntimeException("Graph draft creation error: " + errorBody));
+                            })
+                    )
+                    .bodyToMono(Map.class)
+                    .block();
+
+            if (draft == null || !draft.containsKey("id")) {
+                throw new IllegalStateException("Draft creation failed, no ID returned");
+            }
+
+            String messageId = (String) draft.get("id");
+            String internetMessageId = (String) draft.get("internetMessageId");
+
+//            log.info("Draft created: messageId={}, internetMessageId={}", messageId, internetMessageId);
+
+            // Send the draft
+            webClient.post()
+                    .uri("https://graph.microsoft.com/v1.0/me/messages/" + messageId + "/send")
+                    .headers(h -> h.setBearerAuth(token))
+                    .retrieve()
+                    .toBodilessEntity()
+                    .block();
+
+//            log.info("Mail sent successfully for ticket {}", ticket.getPublicId());
+
+            // Store internetMessageId for threading in the ticket entity or ticketMessage entity
+//            if (internetMessageId != null) {
+//                ticket.setEmailMessageId(internetMessageId);
+//                ticket.setInReplyTo(internetMessageId);
+//                // Persist ticket or ticketMessage with updated messageId for next threading mail
+//                // example: ticketRepository.save(ticket);
+//            }
+
+//            assert lastMsg != null;
+//            lastMsg.setEmailMessageId(messageId);
+//            lastMsg.setInReplyTo(lastMessageId);
+//            ticketMessageRepository.save(lastMsg);
+
+        } catch (Exception e) {
+            log.error("Failed to send mail via Graph API for ticket {}: {}", ticket.getPublicId(), e.getMessage(), e);
+        }
+    }
+
+
+    private String extractHeaderGraph(List<Map<String, Object>> headers, String name) {
+            if (headers == null || headers.isEmpty())
+                return null;
+            for (Map<String, Object> header : headers) {
+                Object headerNameObj = header.get("name");
+                Object headerValueObj = header.get("value");
+                String headerName = (headerNameObj != null) ? headerNameObj.toString() : null;
+                String headerValue = (headerValueObj != null) ? headerValueObj.toString() : null;
+                if (headerName != null && headerName.equalsIgnoreCase(name)) {
+                    return headerValue;
+                }
+            }
+            return null;
+        }
 
     public void sendGmailMessage(MailIntegration integration,
                                  Ticket ticket,

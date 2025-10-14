@@ -7,7 +7,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public interface SiteRepository extends JpaRepository<Site, Long> {
 
@@ -25,6 +29,9 @@ public interface SiteRepository extends JpaRepository<Site, Long> {
 
     Optional<Site> findByPublicIdAndCompany_PublicId(String sitePublicId, String companyPublicId);
 
+    List<Site> findByCompany_PublicId(String companyPublicId);
+
+    Optional<Site> findByPublicId(String siteId);
 //    Optional<Site> findByPublicIdAndCompanyAndIsDeletedFalse(String publicId, Company company);
 
 }

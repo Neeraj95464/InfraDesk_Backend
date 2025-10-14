@@ -22,7 +22,7 @@ import java.util.List;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
-@EnableMethodSecurity  // Enables @PreAuthorize, etc.
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -38,12 +38,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/mail/**").permitAll()
                         .requestMatchers("/api/companies/register/**").permitAll()
-                        .requestMatchers("/api/companies/**").hasAnyRole("USER","SUPER_ADMIN","PARENT_ADMIN","HR_ADMIN","IT_ADMIN")
-                        .requestMatchers("/api/employees/**").hasAnyRole("USER","SUPER_ADMIN","PARENT_ADMIN","HR_ADMIN","IT_ADMIN")
-                        .requestMatchers("/api/users").hasAnyRole("USER","SUPER_ADMIN","HR_ADMIN","IT_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/employees").hasAnyRole("USER","IT_ADMIN","COMPANY_CONFIGURE", "SUPER_ADMIN","HR_ADMIN")
+                        .requestMatchers("/api/companies/**").authenticated()
+//                        .hasAnyRole("EXTERNAL_USER","USER","SUPER_ADMIN","PARENT_ADMIN","HR_ADMIN","IT_ADMIN")
+                        .requestMatchers("/api/employees/**").authenticated()
+//                                .hasAnyRole("EXTERNAL_USER","USER","SUPER_ADMIN","PARENT_ADMIN","HR_ADMIN","IT_ADMIN")
+                        .requestMatchers("/api/users").authenticated()
+//                                .hasAnyRole("EXTERNAL_USER","USER","SUPER_ADMIN","HR_ADMIN","IT_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/employees").authenticated()
+//                                .hasAnyRole("EXTERNAL_USER","USER","IT_ADMIN","COMPANY_CONFIGURE", "SUPER_ADMIN","HR_ADMIN")
                         .requestMatchers("/api/companies/permissions/**").permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

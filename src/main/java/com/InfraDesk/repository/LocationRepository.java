@@ -59,4 +59,6 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     Optional<Location> findByPublicIdAndCompany_PublicId(String locationPublicId, String companyPublicId);
 
     List<Location> findByCompany_PublicId(String companyId);
+
+    Optional<Location> findByPublicId(String locationId);
 }

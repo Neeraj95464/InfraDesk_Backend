@@ -30,8 +30,29 @@ public interface TicketingDepartmentConfigRepository extends JpaRepository<Ticke
 
     Optional<TicketingDepartmentConfig> findByCompanyAndDepartment(Company company, Department department);
 
+    // This ignores @Where, so will find even if isDeleted=true
+    @Query("SELECT c FROM TicketingDepartmentConfig c WHERE c.company=:company AND c.department=:department")
+    Optional<TicketingDepartmentConfig> findAnyByCompanyAndDepartment(@Param("company") Company company, @Param("department") Department department);
+
+    @Query(
+            value = "SELECT * FROM ticketing_department_config c WHERE c.company_id = :companyId AND c.department_id = :departmentId",
+            nativeQuery = true
+    )
+    Optional<TicketingDepartmentConfig> findAnyIncludingDeleted(
+            @Param("companyId") Long companyId,
+            @Param("departmentId") Long departmentId);
+
+
     @Query("SELECT tdc FROM TicketingDepartmentConfig tdc JOIN FETCH tdc.department WHERE tdc.ticketEmail = :email AND tdc.isActive = true")
     Optional<TicketingDepartmentConfig> findWithDepartmentByTicketEmail(@Param("email") String email);
+
+    Page<TicketingDepartmentConfig> findByCompanyAndNoteContainingIgnoreCaseAndIsDeletedFalse(Company company, String keyword, Pageable pageable);
+
+    Page<TicketingDepartmentConfig> findByCompanyAndTicketEmailContainingIgnoreCaseAndIsDeletedFalse(Company company, String keyword, Pageable pageable);
+
+    @Query("SELECT c FROM TicketingDepartmentConfig c WHERE c.company = :company AND (LOWER(c.note) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(c.ticketEmail) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND c.isDeleted = false")
+    Page<TicketingDepartmentConfig> searchByCompanyAndKeywordAndIsDeletedFalse(@Param("company") Company company, @Param("keyword") String keyword, Pageable pageable);
+
 
 
     Optional<TicketingDepartmentConfig> findByTicketEmailAndIsActiveTrue(String email);

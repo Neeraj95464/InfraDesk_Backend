@@ -21,7 +21,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @SQLDelete(sql = "UPDATE ticketing_department_config SET is_deleted = true WHERE id = ?")
-//@Where(clause = "is_deleted = false")
+@Where(clause = "is_deleted = false")
 @EntityListeners(TicketingDepartmentConfig.AuditListener.class)
 public class TicketingDepartmentConfig {
     @Id

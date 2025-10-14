@@ -116,7 +116,7 @@ public class MailAuthController {
 
         if ("gmail".equalsIgnoreCase(provider)) {
             try {
-                System.out.println("Starting Gmail OAuth callback");
+//                System.out.println("Starting Gmail OAuth callback");
                 Map<String, Object> tokenResp = webClient.post()
                         .uri("https://oauth2.googleapis.com/token")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -169,6 +169,7 @@ public class MailAuthController {
                     integration.setTokenExpiresAt(Instant.now().plusSeconds(expiresIn));
                     integration.setScopes("gmail.modify,gmail.send");
                     integration.setEnabled(true);
+                    integration.setIsDeleted(false);
                     integration.setUpdatedAt(Instant.now());
                 } else {
                     integration = MailIntegration.builder()
@@ -235,6 +236,7 @@ public class MailAuthController {
                 integration.setTokenExpiresAt(Instant.now().plusSeconds(expiresIn));
                 integration.setScopes("Mail.ReadWrite,Mail.Send");
                 integration.setEnabled(true);
+                integration.setIsDeleted(false);
                 integration.setUpdatedAt(Instant.now());
             } else {
                 integration = MailIntegration.builder()
@@ -246,6 +248,7 @@ public class MailAuthController {
                         .tokenExpiresAt(Instant.now().plusSeconds(expiresIn))
                         .scopes("Mail.ReadWrite,Mail.Send")
                         .enabled(true)
+
                         .createdAt(Instant.now())
                         .build();
             }

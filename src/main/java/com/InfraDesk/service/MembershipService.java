@@ -83,7 +83,6 @@ public class MembershipService {
         );
     }
 
-
     public PaginatedResponse<UserMembershipDTO> getAllUsersByCompanyWithMemberships(String companyId, Pageable pageable) {
         // Fetch paginated memberships for the company (no role/isActive/isDeleted filter)
         Page<Membership> membershipsPage = membershipRepository

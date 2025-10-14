@@ -48,8 +48,7 @@ public class TicketingDepartmentConfigController {
             @PathVariable String companyId,
             @RequestBody TicketingDepartmentConfigCreateDTO config) {
 
-//        config.setCompany(new com.InfraDesk.entity.Company());
-//        config.getCompany().setPublicId(companyId);
+//        System.out.println("config received "+config);
           config.setCompanyPublicId(companyId);
 
         TicketingDepartmentConfigDTO created = configService.createConfig(config);
@@ -63,7 +62,7 @@ public class TicketingDepartmentConfigController {
             @PathVariable String companyId,
             @PathVariable String publicId,
             @RequestBody TicketingDepartmentConfigCreateDTO updatedConfig) {
-
+//        System.out.println("config received for update "+updatedConfig);
           updatedConfig.setCompanyPublicId(companyId);
 
         TicketingDepartmentConfigDTO updated = configService.updateConfig(publicId, updatedConfig);

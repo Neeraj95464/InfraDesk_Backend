@@ -96,7 +96,7 @@ public class DepartmentController {
     private final DepartmentService departmentService;
 
     @GetMapping
-    @PreAuthorize("@perm.check(#companyId, 'COMPANY_CONFIGURE')")
+    @PreAuthorize("@perm.check(#companyId, 'DEPARTMENT_VIEW')")
     public ResponseEntity<PaginatedResponse<DepartmentResponseDTO>> getDepartments(
             @PathVariable String companyId,
             @RequestParam(defaultValue = "0") int page,

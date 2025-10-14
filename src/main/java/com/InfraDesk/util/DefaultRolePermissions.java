@@ -21,9 +21,20 @@ public final class DefaultRolePermissions {
             ),
 
             Role.USER, List.of(
-                    PermissionCode.TICKET_VIEW, PermissionCode.EMPLOYEE_VIEW, PermissionCode.ASSET_VIEW
+                    PermissionCode.TICKET_VIEW,
+                    PermissionCode.EMPLOYEE_VIEW,
+                    PermissionCode.ASSET_VIEW
             ),
             Role.EXTERNAL_USER, List.of(
+                    PermissionCode.TICKET_VIEW
+            ),
+            Role.DEPARTMENT_ADMIN, List.of(
+                    PermissionCode.TICKET_VIEW
+            ),
+            Role.MANAGER, List.of(
+                    PermissionCode.TICKET_VIEW
+            ),
+            Role.EXECUTIVE, List.of(
                     PermissionCode.TICKET_VIEW
             )
     );

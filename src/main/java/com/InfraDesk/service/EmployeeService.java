@@ -12,16 +12,18 @@ import com.InfraDesk.repository.*;
 import com.InfraDesk.util.AuthUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +47,7 @@ public class EmployeeService {
 
     @Transactional
     public void createEmployeeWithUser(String companyId, EmployeeRequestDTO dto) {
+
         User authUser = authUtils.getAuthenticatedUser()
                 .orElseThrow(() -> new NotFoundException("Authenticated user not found"));
 
@@ -293,5 +296,176 @@ public class EmployeeService {
 
         employeeRepository.save(employee);
     }
+
+    @Transactional
+    public ImportResult importEmployeesFromExcel(InputStream is, String companyId) throws IOException {
+        List<String> errors = new ArrayList<>();
+        int successCount = 0;
+        int batchSize = 100; // Can adjust
+        List<EmployeeRequestDTO> batch = new ArrayList<>();
+
+        Company company = companyRepository.findByPublicId(companyId)
+                .orElseThrow(() -> new BusinessException("Company not found " + companyId));
+
+        // Preload reference maps: name (lowercase trimmed) -> entity publicId for fast lookup
+        Map<String, String> departmentNameToId = departmentRepository.findByCompany_PublicId(companyId).stream()
+                .filter(d -> !d.getIsDeleted())
+                .collect(Collectors.toMap(
+                        d -> d.getName().toLowerCase().trim(),
+                        Department::getPublicId
+                ));
+
+        Map<String, String> siteNameToId = siteRepository.findByCompany_PublicId(companyId).stream()
+                .filter(s -> !s.getIsDeleted())
+                .collect(Collectors.toMap(
+                        s -> s.getName().toLowerCase().trim(),
+                        Site::getPublicId
+                ));
+
+        Map<String, String> locationNameToId = locationRepository.findByCompany_PublicId(companyId).stream()
+                .filter(l -> !l.getIsDeleted())
+                .collect(Collectors.toMap(
+                        l -> l.getName().toLowerCase().trim(),
+                        Location::getPublicId
+                ));
+
+        try (Workbook workbook = WorkbookFactory.create(is)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            for (Row row : sheet) {
+                if (row.getRowNum() == 0) continue; // skip header row
+                try {
+                    EmployeeRequestDTO dto = new EmployeeRequestDTO();
+                    dto.setEmployeeId(getCellValue(row.getCell(0)));
+                    dto.setName(getCellValue(row.getCell(1)));
+                    dto.setPhone(getCellValue(row.getCell(2)));
+
+                    String deptName = getCellValue(row.getCell(3)).toLowerCase().trim();
+                    String deptId = departmentNameToId.get(deptName);
+                    if (deptId == null) throw new BusinessException("Department not found: " + deptName);
+                    dto.setDepartmentId(deptId);
+
+                    dto.setDesignation(getCellValue(row.getCell(4)));
+                    dto.setEmail(getCellValue(row.getCell(5)));
+
+                    String siteName = getCellValue(row.getCell(6)).toLowerCase().trim();
+                    if (!siteName.isEmpty()) {
+                        String siteId = siteNameToId.get(siteName);
+                        if (siteId == null) throw new BusinessException("Site not found: " + siteName);
+                        dto.setSiteId(siteId);
+                    }
+
+                    String locationName = getCellValue(row.getCell(7)).toLowerCase().trim();
+                    if (!locationName.isEmpty()) {
+                        String locationId = locationNameToId.get(locationName);
+                        if (locationId == null) throw new BusinessException("Location not found: " + locationName);
+                        dto.setLocationId(locationId);
+                    }
+
+                    dto.setPassword(getCellValue(row.getCell(8)));
+
+                    String roleStr = getCellValue(row.getCell(9));
+                    try {
+                        dto.setRole(roleStr == null || roleStr.isBlank() ? Role.USER : Role.valueOf(roleStr.toUpperCase().trim()));
+                    } catch (Exception ex) {
+                        dto.setRole(Role.USER);
+                    }
+
+                    batch.add(dto);
+
+                    if (batch.size() >= batchSize) {
+                        successCount += processBatch(batch, companyId, errors);
+                        batch.clear();
+                    }
+                } catch (Exception e) {
+                    errors.add("Row " + (row.getRowNum() + 1) + ": " + e.getMessage());
+                }
+            }
+
+            if (!batch.isEmpty()) {
+                successCount += processBatch(batch, companyId, errors);
+            }
+        }
+
+        return new ImportResult(successCount, errors);
+    }
+
+    private int processBatch(List<EmployeeRequestDTO> batch, String companyId, List<String> errors) {
+        int count = 0;
+        for (int i = 0; i < batch.size(); i++) {
+            EmployeeRequestDTO dto = batch.get(i);
+            try {
+                createEmployeeWithUser(companyId, dto);
+                count++;
+            } catch (Exception e) {
+                errors.add("Batch item #" + (i + 1) + ": " + e.getMessage());
+            }
+        }
+        return count;
+    }
+
+    private String getCellValue(Cell cell) {
+        if (cell == null) return "";
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                return String.valueOf((int) cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                return cell.getCellFormula();
+            default:
+                return "";
+        }
+    }
+
+    public static class ImportResult {
+        private final int successCount;
+        private final List<String> errors;
+
+        public ImportResult(int successCount, List<String> errors) {
+            this.successCount = successCount;
+            this.errors = errors;
+        }
+
+        public int getSuccessCount() {
+            return successCount;
+        }
+
+        public List<String> getErrors() {
+            return errors;
+        }
+    }
+
+//    private String getCellValue(Cell cell) {
+//        if (cell == null) return "";
+//        switch (cell.getCellType()) {
+//            case STRING: return cell.getStringCellValue();
+//            case NUMERIC: return String.valueOf((int) cell.getNumericCellValue());
+//            case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
+//            case FORMULA: return cell.getCellFormula();
+//            default: return "";
+//        }
+//    }
+
+//    public static class ImportResult {
+//        private final int successCount;
+//        private final List<String> errors;
+//
+//        public ImportResult(int successCount, List<String> errors) {
+//            this.successCount = successCount;
+//            this.errors = errors;
+//        }
+//
+//        public int getSuccessCount() {
+//            return successCount;
+//        }
+//
+//        public List<String> getErrors() {
+//            return errors;
+//        }
+//    }
+
+
 
 }

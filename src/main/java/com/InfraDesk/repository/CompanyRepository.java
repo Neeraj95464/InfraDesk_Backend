@@ -2,9 +2,11 @@ package com.InfraDesk.repository;
 
 import com.InfraDesk.entity.Company;
 import com.InfraDesk.entity.CompanyDomain;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -31,7 +33,11 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
     // in CompanyRepository.java
     List<Company> findByParentCompanyId(Long parentCompanyId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Company c WHERE c.publicId = :publicId")
+    Optional<Company> findByPublicIdForUpdate(@Param("publicId") String publicId);
 
 
+//    Optional<Object> findByIdForUpdate(Long companyId);
 }
 

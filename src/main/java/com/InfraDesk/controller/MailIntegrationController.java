@@ -37,5 +37,17 @@ public class MailIntegrationController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("/{publicId}")
+    @PreAuthorize("@perm.check(#companyId, 'COMPANY_CONFIGURE')")
+    public ResponseEntity<Void> updateStatusOrDelete(
+            @PathVariable String companyId,
+            @PathVariable String publicId,
+            @RequestParam String action) {
+
+        mailIntegrationService.updateMailIntegrationStatusOrDelete(companyId,publicId, action);
+        return ResponseEntity.noContent().build();
+    }
+
 }
 

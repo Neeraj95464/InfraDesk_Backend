@@ -3,6 +3,7 @@ package com.InfraDesk.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 //@Table(name = "mail_integrations",
@@ -14,6 +15,10 @@ import java.time.Instant;
 public class MailIntegration {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Builder.Default
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false)
+    private String publicId = UUID.randomUUID().toString();
 
     @Column(nullable = false)
     private String companyId; // FK to your Company table (store id or publicId depending on design)
@@ -46,6 +51,7 @@ public class MailIntegration {
     private String scopes; // e.g. "gmail.readonly,gmail.send"
 
     private Boolean enabled = true;
+    private Boolean isDeleted= false;
 
     private Instant lastSyncAt;
 
@@ -53,5 +59,12 @@ public class MailIntegration {
 
     private Instant createdAt;
     private Instant updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (publicId == null) {
+            publicId = UUID.randomUUID().toString();
+        }
+    }
 }
 

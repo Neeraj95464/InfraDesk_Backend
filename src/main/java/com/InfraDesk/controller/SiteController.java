@@ -20,7 +20,7 @@ public class SiteController {
     private final SiteService siteService;
 
     @GetMapping
-    @PreAuthorize("@perm.check(#companyId, 'COMPANY_CONFIGURE')")
+    @PreAuthorize("@perm.check(#companyId, 'EMPLOYEE_MANAGE')")
     public ResponseEntity<PaginatedResponse<SiteResponseDTO>> getSites(
             @PathVariable String companyId,
             @RequestParam(defaultValue = "0") int page,

@@ -13,5 +13,8 @@ public interface MailIntegrationRepository extends JpaRepository<MailIntegration
     Optional<MailIntegration> findByCompanyIdAndMailboxEmail(String companyId, String mailboxEmail);
 
     Page<MailIntegration> findByCompanyId(String companyId, Pageable pageable);
+
+    Optional<MailIntegration> findByPublicId(String publicId);
+    Page<MailIntegration> findByCompanyIdAndIsDeletedFalse(String companyId,Pageable pageable);
 }
 

@@ -104,6 +104,14 @@ public class Company {
     @OneToMany(mappedBy = "company")
     private Set<Membership> memberships = new HashSet<>();
 
+    @Column(length = 20)
+    private String shortCode;
+
+    // Used to generate per-company asset tags safely; increment under DB lock
+    @Builder.Default
+    @Column(name = "asset_sequence", nullable = false)
+    private Long assetSequence = 1L;
+
     /** Auditing */
     @CreatedDate
     @Column(nullable = false, updatable = false)
@@ -152,34 +160,8 @@ public class Company {
             // Soft delete memberships
             if (memberships != null) {
                 memberships.forEach(m -> m.setIsDeleted(true));
-                memberships.forEach(m->m.setIsActive(false));
+                memberships.forEach(m -> m.setIsActive(false));
             }
-
-            // Soft delete assets
-//            if (assets != null) {
-//                assets.forEach(asset -> {
-//                    asset.setIsDeleted(true);
-//                    asset.setIsActive(false);
-//                });
-//            }
-//
-//            // Soft delete feedbacks
-//            if (feedbacks != null) {
-//                feedbacks.forEach(feedback -> {
-//                    feedback.setIsDeleted(true);
-//                    feedback.setIsActive(false);
-//                });
-//            }
-//
-//            // Soft delete tickets
-//            if (tickets != null) {
-//                tickets.forEach(ticket -> {
-//                    ticket.setIsDeleted(true);
-//                    ticket.setIsActive(false);
-//                });
-//            }
-
-            // Soft delete other related collections similarly if added...
         }
 
         /**
@@ -204,48 +186,7 @@ public class Company {
                 memberships.forEach(m -> m.setIsDeleted(false));
                 memberships.forEach(m -> m.setIsActive(true));
             }
-
-//            if (assets != null) {
-//                assets.forEach(asset -> {
-//                    asset.setIsActive(true);
-//                    asset.setIsDeleted(false);
-//                });
-//            }
-//
-//            if (feedbacks != null) {
-//                feedbacks.forEach(feedback -> {
-//                    feedback.setIsActive(true);
-//                    feedback.setIsDeleted(false);
-//                });
-//            }
-//
-//            if (tickets != null) {
-//                tickets.forEach(ticket -> {
-//                    ticket.setIsActive(true);
-//                    ticket.setIsDeleted(false);
-//                });
-//            }
         }
-
-//    public void deactivate() {
-//        this.isActive = false;
-//        this.isDeleted = false;
-//
-//        if (subsidiaries != null) {
-//            subsidiaries.forEach(Company::activate);
-//        }
-//
-//        if (employees != null) {
-//            employees.forEach(emp -> {
-//                emp.setIsActive(false);
-//                emp.setIsDeleted(false);
-//            });
-//        }
-//
-//        if (memberships != null) {
-//            memberships.forEach(m -> m.setIsDeleted(false));
-//            memberships.forEach(m -> m.setIsActive(false));
-//        }
 
     /** Deactivate */
     public void deactivate() {
@@ -253,32 +194,14 @@ public class Company {
         this.isDeleted = false;
 
         if (subsidiaries != null) subsidiaries.forEach(Company::deactivate);
-        if (employees != null) employees.forEach(emp -> { emp.setIsActive(false); emp.setIsDeleted(false); });
-        if (memberships != null) memberships.forEach(m -> { m.setIsActive(false); m.setIsDeleted(false); });
+        if (employees != null) employees.forEach(emp -> {
+            emp.setIsActive(false);
+            emp.setIsDeleted(false);
+        });
+        if (memberships != null) memberships.forEach(m -> {
+            m.setIsActive(false);
+            m.setIsDeleted(false);
+        });
 
-
-//            if (assets != null) {
-//                assets.forEach(asset -> {
-//                    asset.setIsActive(true);
-//                    asset.setIsDeleted(false);
-//                });
-//            }
-//
-//            if (feedbacks != null) {
-//                feedbacks.forEach(feedback -> {
-//                    feedback.setIsActive(true);
-//                    feedback.setIsDeleted(false);
-//                });
-//            }
-//
-//            if (tickets != null) {
-//                tickets.forEach(ticket -> {
-//                    ticket.setIsActive(true);
-//                    ticket.setIsDeleted(false);
-//                });
-//            }
     }
-
-        // ... rest of the entity
-
 }

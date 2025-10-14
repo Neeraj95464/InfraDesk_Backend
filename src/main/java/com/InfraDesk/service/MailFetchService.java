@@ -2,7 +2,9 @@ package com.InfraDesk.service;
 
 import com.InfraDesk.config.WebClientConfig;
 import com.InfraDesk.entity.MailIntegration;
+import com.InfraDesk.entity.TicketingDepartmentConfig;
 import com.InfraDesk.repository.MailIntegrationRepository;
+import com.InfraDesk.repository.TicketingDepartmentConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,8 +32,9 @@ public class MailFetchService {
     private final MailAuthService authService;
     private final MailProcessorService processor; // see below
     private final WebClient webClient;
-    private static final Logger log = LoggerFactory.getLogger(MailFetchService.class);
 
+//    private final TicketingDepartmentConfigRepository ticketingDepartmentConfigRepository;
+    private static final Logger log = LoggerFactory.getLogger(MailFetchService.class);
 
     @Scheduled(fixedDelayString = "${mail.poll.interval:30000}")
     public void pollAll() {
@@ -102,12 +105,43 @@ public class MailFetchService {
                     .retrieve().bodyToMono(Map.class).block();
             processor.processGmailMessage(full, m);
             // optionally mark message as read via modify
-            webClient.post()
-                    .uri("https://gmail.googleapis.com/gmail/v1/users/me/messages/" + id + "/modify")
-                    .headers(h -> h.setBearerAuth(accessToken))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(Map.of("removeLabelIds", List.of("UNREAD")))
-                    .retrieve().bodyToMono(Void.class).block();
+//            webClient.post()
+//                    .uri("https://gmail.googleapis.com/gmail/v1/users/me/messages/" + id + "/modify")
+//                    .headers(h -> h.setBearerAuth(accessToken))
+//                    .contentType(MediaType.APPLICATION_JSON)
+//                    .bodyValue(Map.of("removeLabelIds", List.of("UNREAD")))
+//                    .retrieve().bodyToMono(Void.class).block();
+
+            try {
+                webClient.post()
+                        .uri("https://gmail.googleapis.com/gmail/v1/users/me/messages/" + id + "/modify")
+                        .headers(h -> h.setBearerAuth(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(Map.of("removeLabelIds", List.of("UNREAD")))
+                        .retrieve()
+                        .bodyToMono(Void.class)
+                        .block();
+                log.info("Message {} marked as read.", id);
+            } catch (Exception e) {
+                log.error("Failed to mark message as read: {}", id, e);
+            } finally {
+                // Mark message as read regardless of success or failure
+                try {
+                    webClient.post()
+                            .uri("https://gmail.googleapis.com/gmail/v1/users/me/messages/" + id + "/modify")
+                            .headers(h -> h.setBearerAuth(accessToken))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(Map.of("removeLabelIds", List.of("UNREAD")))
+                            .retrieve()
+                            .bodyToMono(Void.class)
+                            .block();
+
+                    log.info("Marked message {} as read", id);
+                } catch (Exception e) {
+                    log.error("Failed to mark message as read: {}", id, e);
+                }
+            }
+
         }
     }
 
@@ -138,5 +172,6 @@ public class MailFetchService {
                     .retrieve().bodyToMono(Void.class).block();
         }
     }
+
 }
 
