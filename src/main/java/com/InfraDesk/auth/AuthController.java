@@ -52,6 +52,16 @@ public class AuthController {
     private final long refreshTokenExpiration = 7 * 24 * 60 * 60 * 1000; // 7 days
 
     // Helper to create secure HttpOnly cookie for tokens
+//    private ResponseCookie createHttpOnlyCookie(String name, String value, long maxAgeSeconds) {
+//        return ResponseCookie.from(name, value)
+//                .httpOnly(true)
+//                .secure(true) // set false for local dev without HTTPS
+//                .path("/")
+//                .maxAge(maxAgeSeconds)
+//                .sameSite("Lax")
+//                .build();
+//    }
+
     private ResponseCookie createHttpOnlyCookie(String name, String value, long maxAgeSeconds) {
         return ResponseCookie.from(name, value)
                 .httpOnly(true)
@@ -91,15 +101,23 @@ public class AuthController {
         ResponseCookie accessCookie = ResponseCookie.from("accessToken", accessToken)
                 .httpOnly(true)
                 .secure(true)
-                .sameSite("Strict")
+                .sameSite("None")
                 .path("/")
                 .maxAge(accessTokenExpiration / 1000)
                 .build();
 
+//        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+//                .httpOnly(true)
+//                .secure(true)
+//                .sameSite("Strict")
+//                .path("/")
+//                .maxAge(refreshTokenExpiration / 1000)
+//                .build();
+
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
                 .secure(true)
-                .sameSite("Strict")
+                .sameSite("None")
                 .path("/")
                 .maxAge(refreshTokenExpiration / 1000)
                 .build();
@@ -205,7 +223,7 @@ public class AuthController {
         ResponseCookie newAccessTokenCookie = ResponseCookie.from("accessToken", newAccessToken)
                 .httpOnly(true)
                 .secure(true)
-                .sameSite("Strict")
+                .sameSite("None")
                 .path("/")
                 .maxAge(accessTokenExpiration / 1000)
                 .build();

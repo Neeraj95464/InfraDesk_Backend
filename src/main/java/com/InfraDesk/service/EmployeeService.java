@@ -11,6 +11,9 @@ import com.InfraDesk.mapper.EmployeeMapper;
 import com.InfraDesk.repository.*;
 import com.InfraDesk.util.AuthUtils;
 import jakarta.transaction.Transactional;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.data.domain.Page;
@@ -18,6 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +31,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -43,9 +49,11 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
     private final AuthUtils authUtils;
     private final CompanyDomainRepository companyDomainRepository;
+    private final TransactionTemplate transactionTemplate;
+    private final Validator validator;
 
 
-    @Transactional
+
     public void createEmployeeWithUser(String companyId, EmployeeRequestDTO dto) {
 
         User authUser = authUtils.getAuthenticatedUser()
@@ -53,6 +61,10 @@ public class EmployeeService {
 
         Company company = companyRepository.findByPublicId(companyId)
                 .orElseThrow(() -> new NotFoundException("Company not found with id: " + companyId));
+
+        if (employeeRepository.findByEmployeeIdAndCompany_PublicId(dto.getEmployeeId(), companyId).isPresent()) {
+            throw new BusinessException("Employee with ID " + dto.getEmployeeId() + " already exists in company " + companyId);
+        }
 
         // Standardize and extract domain from email
         String email = dto.getEmail().toLowerCase();
@@ -111,7 +123,13 @@ public class EmployeeService {
                 .user(user)
                 .build();
 
-        employeeRepository.save(employee);
+//        employeeRepository.save(employee);
+        try {
+            saveEmployee(employee);
+        } catch (Exception e) {
+            log.error("Exception found while saving employee ", e);
+            throw e; // 🔥 Re-throw so Spring can roll back properly
+        }
 
 
         if (!membershipRepository.existsByUserAndCompany(user, company)) {
@@ -127,10 +145,18 @@ public class EmployeeService {
             membershipRepository.save(membership);
 
         } else {
-            log.info("user membership exists already {} ",user);
+            log.info("user membership exists already {} ",user.getEmail());
         }
     }
 
+
+    public void saveEmployee(Employee employee) {
+        Set<ConstraintViolation<Employee>> violations = validator.validate(employee);
+        if (!violations.isEmpty()) {
+            throw new ConstraintViolationException(violations);
+        }
+        employeeRepository.save(employee);
+    }
 
     public void isEmailDomainAllowed(Company company, String emailDomain) {
         if (company == null || emailDomain == null || emailDomain.isBlank()) {
@@ -393,11 +419,27 @@ public class EmployeeService {
         int count = 0;
         for (int i = 0; i < batch.size(); i++) {
             EmployeeRequestDTO dto = batch.get(i);
+//            try {
+//                createEmployeeWithUser(companyId, dto);
+//                count++;
+//            } catch (Exception e) {
+//                errors.add("Batch item #" + (i + 1) + ": " + e.getMessage());
+//            }
+
             try {
-                createEmployeeWithUser(companyId, dto);
+                // each DTO handled independently — processBatch already called from your import loop
+                transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+                transactionTemplate.executeWithoutResult(status -> {
+                    createEmployeeWithUser(companyId, dto);
+                });
                 count++;
             } catch (Exception e) {
+                log.warn("Batch item #{} failed: {}", i + 1, e.getMessage(), e);
                 errors.add("Batch item #" + (i + 1) + ": " + e.getMessage());
+                // no global rollback — continue processing next item
+            } finally {
+                // reset propagation to default for safety
+                transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
             }
         }
         return count;
@@ -436,36 +478,4 @@ public class EmployeeService {
             return errors;
         }
     }
-
-//    private String getCellValue(Cell cell) {
-//        if (cell == null) return "";
-//        switch (cell.getCellType()) {
-//            case STRING: return cell.getStringCellValue();
-//            case NUMERIC: return String.valueOf((int) cell.getNumericCellValue());
-//            case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
-//            case FORMULA: return cell.getCellFormula();
-//            default: return "";
-//        }
-//    }
-
-//    public static class ImportResult {
-//        private final int successCount;
-//        private final List<String> errors;
-//
-//        public ImportResult(int successCount, List<String> errors) {
-//            this.successCount = successCount;
-//            this.errors = errors;
-//        }
-//
-//        public int getSuccessCount() {
-//            return successCount;
-//        }
-//
-//        public List<String> getErrors() {
-//            return errors;
-//        }
-//    }
-
-
-
 }

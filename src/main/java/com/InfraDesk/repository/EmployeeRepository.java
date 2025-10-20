@@ -20,4 +20,6 @@ public interface EmployeeRepository extends JpaRepository<Employee,Long> {
     Optional<Employee> findByPublicIdAndCompany_PublicIdAndIsDeletedFalseAndIsActiveTrue(String employeeId, String companyId);
 
     Optional<Employee> findByPublicId(String assigneeEmployeeId);
+
+    Optional<Employee> findByEmployeeIdAndCompany_PublicId(String employeeId, String companyId);
 }

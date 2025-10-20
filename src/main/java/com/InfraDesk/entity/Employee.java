@@ -2,6 +2,9 @@ package com.InfraDesk.entity;
 
 import com.InfraDesk.enums.Role;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.data.annotation.LastModifiedDate;
 
@@ -32,6 +35,67 @@ import java.util.UUID;
 @EqualsAndHashCode(of = "id")
 public class Employee {
 
+//    @Id
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    private Long id;
+//
+//    @Builder.Default
+//    @Column(nullable = false, unique = true, updatable = false, length = 50)
+//    private String publicId = generatePublicId();
+//
+//    /** Unique employeeId per company (e.g., EMP001) */
+//    @Column(nullable = false, length = 50)
+//    private String employeeId;
+//
+//    @Column(nullable = false, length = 100)
+//    private String name;
+//
+//    @Column(nullable = false, length = 15)
+//    private String phone;
+//
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "department_id", nullable = false)
+//    private Department department;
+//
+//    @Column(nullable = true, length = 100)
+//    private String designation;
+//
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "company_id", nullable = false)
+//    private Company company;
+//
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "user_id", nullable = false)
+//    private User user;
+//
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "site_id")
+//    private Site site;
+//
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "location_id")
+//    private Location location;
+//
+//    @Column(nullable = false, updatable = false)
+//    private LocalDateTime createdAt;
+//
+//    @Column(nullable = true, length = 100)
+//    private String createdBy;
+//
+//    @Column(nullable = false)
+//    private Boolean isActive = true;
+//
+//    @Column(nullable = false)
+//    private Boolean isDeleted = false;
+//
+//    @LastModifiedDate
+//    private LocalDateTime updatedAt;
+//
+//    private static String generatePublicId() {
+//        return "EMP-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+//    }
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -40,27 +104,34 @@ public class Employee {
     @Column(nullable = false, unique = true, updatable = false, length = 50)
     private String publicId = generatePublicId();
 
-    /** Unique employeeId per company (e.g., EMP001) */
+    @NotBlank(message = "Employee ID cannot be blank")
+    @Size(max = 50, message = "Employee ID must be at most 50 characters")
     @Column(nullable = false, length = 50)
     private String employeeId;
 
+    @NotBlank(message = "Name cannot be blank")
+    @Size(max = 100, message = "Name must be at most 100 characters")
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 15)
+    @NotBlank(message = "Phone number is required")
+    @Size(max = 15, message = "Phone number must be at most 15 digits")
     private String phone;
 
+    @NotNull(message = "Department is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
 
-    @Column(nullable = true, length = 100)
+    @Size(max = 100, message = "Designation must be at most 100 characters")
     private String designation;
 
+    @NotNull(message = "Company is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
+    @NotNull(message = "User reference is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -76,13 +147,13 @@ public class Employee {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = true, length = 100)
+    @Size(max = 100, message = "CreatedBy must be at most 100 characters")
     private String createdBy;
 
-    @Column(nullable = false)
+    @NotNull
     private Boolean isActive = true;
 
-    @Column(nullable = false)
+    @NotNull
     private Boolean isDeleted = false;
 
     @LastModifiedDate
