@@ -35,66 +35,6 @@ import java.util.UUID;
 @EqualsAndHashCode(of = "id")
 public class Employee {
 
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
-//    private Long id;
-//
-//    @Builder.Default
-//    @Column(nullable = false, unique = true, updatable = false, length = 50)
-//    private String publicId = generatePublicId();
-//
-//    /** Unique employeeId per company (e.g., EMP001) */
-//    @Column(nullable = false, length = 50)
-//    private String employeeId;
-//
-//    @Column(nullable = false, length = 100)
-//    private String name;
-//
-//    @Column(nullable = false, length = 15)
-//    private String phone;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "department_id", nullable = false)
-//    private Department department;
-//
-//    @Column(nullable = true, length = 100)
-//    private String designation;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "company_id", nullable = false)
-//    private Company company;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "user_id", nullable = false)
-//    private User user;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "site_id")
-//    private Site site;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "location_id")
-//    private Location location;
-//
-//    @Column(nullable = false, updatable = false)
-//    private LocalDateTime createdAt;
-//
-//    @Column(nullable = true, length = 100)
-//    private String createdBy;
-//
-//    @Column(nullable = false)
-//    private Boolean isActive = true;
-//
-//    @Column(nullable = false)
-//    private Boolean isDeleted = false;
-//
-//    @LastModifiedDate
-//    private LocalDateTime updatedAt;
-//
-//    private static String generatePublicId() {
-//        return "EMP-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
-//    }
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

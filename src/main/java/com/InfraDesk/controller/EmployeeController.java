@@ -1,10 +1,14 @@
 package com.InfraDesk.controller;
 
+import com.InfraDesk.dto.EmployeeFilterRequest;
 import com.InfraDesk.dto.EmployeeRequestDTO;
 import com.InfraDesk.dto.EmployeeResponseDTO;
 import com.InfraDesk.dto.PaginatedResponse;
 import com.InfraDesk.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -17,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Validated
 public class EmployeeController {
 
+    private static final Logger log = LoggerFactory.getLogger(EmployeeController.class);
     private final EmployeeService employeeService;
 
     @PostMapping("/{companyId}/employees")
@@ -78,5 +83,37 @@ public class EmployeeController {
         EmployeeService.ImportResult importResult = employeeService.importEmployeesFromExcel(file.getInputStream(), companyId);
         return ResponseEntity.ok(importResult);
     }
+
+//    @PostMapping("{companyId}/filter")
+//    public ResponseEntity<Page<EmployeeResponseDTO>> filterEmployees(
+//            @PathVariable String companyId,
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int size,
+//            @RequestBody(required = false) EmployeeFilterRequest request) {
+//
+//        Page<EmployeeResponseDTO> result = employeeService.filterEmployees(request != null ? request : new EmployeeFilterRequest(), companyId, page, size);
+//        return ResponseEntity.ok(result);
+//    }
+
+    @PostMapping("{companyId}/filter")
+    public ResponseEntity<PaginatedResponse<EmployeeResponseDTO>> filterEmployees(
+            @PathVariable String companyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestBody(required = false) EmployeeFilterRequest request) {
+
+//        log.info("request was {} ",request);
+
+        Page<EmployeeResponseDTO> result = employeeService.filterEmployees(
+                request != null ? request : new EmployeeFilterRequest(),
+                companyId,
+                page,
+                size
+        );
+
+        // Wrap into PaginatedResponse
+        return ResponseEntity.ok(PaginatedResponse.of(result));
+    }
+
 
 }

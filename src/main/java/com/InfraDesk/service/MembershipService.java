@@ -1,46 +1,59 @@
 package com.InfraDesk.service;
 
 import com.InfraDesk.audit.AuthenticationSuccessListener;
+import com.InfraDesk.dto.MembershipFilterRequest;
 import com.InfraDesk.dto.MembershipInfoDTO;
 import com.InfraDesk.dto.PaginatedResponse;
 import com.InfraDesk.dto.UserMembershipDTO;
 import com.InfraDesk.entity.Company;
 import com.InfraDesk.entity.Membership;
+import com.InfraDesk.enums.PermissionCode;
 import com.InfraDesk.entity.User;
 import com.InfraDesk.enums.Role;
 import com.InfraDesk.exception.BusinessException;
+import com.InfraDesk.mapper.FilteredMembershipMapper;
 import com.InfraDesk.mapper.MembershipMapper;
 import com.InfraDesk.repository.CompanyRepository;
 import com.InfraDesk.repository.MembershipRepository;
 import com.InfraDesk.repository.UserLoginAuditRepository;
 import com.InfraDesk.repository.UserRepository;
+import com.InfraDesk.util.AuthUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import com.InfraDesk.specification.MembershipSpecification;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class MembershipService {
 
+    private static final Logger log = LoggerFactory.getLogger(MembershipService.class);
     private final MembershipRepository membershipRepository;
     private final UserLoginAuditRepository userLoginAuditRepository;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
+    private final AuthUtils authUtils;
 
     public PaginatedResponse<UserMembershipDTO> getUsersByCompanyWithMemberships(String companyId, Pageable pageable) {
 
         // Returns memberships for company excluding role USER, active and not deleted
-        Page<Membership> membershipsPage = membershipRepository
-                .findByCompany_PublicIdAndRoleIsNotAndIsActiveTrueAndIsDeletedFalse(companyId, Role.USER, pageable);
+//        Page<Membership> membershipsPage = membershipRepository
+//                .findByCompany_PublicIdAndRoleIsNotAndIsActiveTrueAndIsDeletedFalse(companyId, Role.USER, pageable);
+
+        List<Role> excludedRoles = Arrays.asList(Role.USER, Role.EXTERNAL_USER);
+        Page<Membership> membershipsPage = membershipRepository.findByCompanyPublicIdAndRolesNotInAndIsActiveTrueAndIsDeletedFalse(companyId, excludedRoles, pageable);
 
         // Group memberships by user to build UserMembershipDTO
         Map<User, List<Membership>> membershipsByUser = membershipsPage.getContent().stream()
@@ -167,6 +180,65 @@ public class MembershipService {
                 .build();
 
         return MembershipMapper.toDTO(membershipRepository.save(membership));
+    }
+
+
+    public PaginatedResponse<UserMembershipDTO> filterMemberships(MembershipFilterRequest req, String companyId) {
+        AuthUtils.CurrentUserWithPermissions currentUser =
+                authUtils.getCurrentUserWithPermissions(companyId)
+                        .orElseThrow(() -> new BusinessException("Auth user not found"));
+
+        Specification<Membership> spec = MembershipSpecification.filter(req, companyId);
+
+//        log.info("Filtering memberships by companyId={}, roles={}, isActive={}, createdAfter={}",
+//                companyId, req.getRoles(), req.getIsActive(), req.getCreatedAfter());
+
+        var pageable = PageRequest.of(req.getPage(), req.getSize(), Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        // Fetch filtered memberships page
+        Page<Membership> membershipsPage = membershipRepository.findAll(spec, pageable);
+
+        // Group memberships by User entity
+        Map<User, List<Membership>> membershipsByUser = membershipsPage.getContent().stream()
+                .collect(Collectors.groupingBy(Membership::getUser));
+
+        // Map grouped memberships to UserMembershipDTO
+        List<UserMembershipDTO> content = membershipsByUser.entrySet().stream()
+                .map(entry -> {
+                    User user = entry.getKey();
+                    List<MembershipInfoDTO> membershipDTOs = entry.getValue().stream()
+                            .map(m -> MembershipInfoDTO.builder()
+                                    .companyPublicId(m.getCompany().getPublicId())
+                                    .companyName(m.getCompany().getName())
+                                    .role(m.getRole())
+                                    .isActive(m.getIsActive())
+                                    .createdAt(m.getCreatedAt())
+                                    .build())
+                            .collect(Collectors.toList());
+
+                    LocalDateTime lastLoginAt = userLoginAuditRepository.findLastLoginByUserId(user.getId());
+
+                    return UserMembershipDTO.builder()
+                            .userPublicId(user.getPublicId())
+                            .email(user.getEmail())
+                            .username(user.getEmployeeProfiles() == null || user.getEmployeeProfiles().isEmpty()
+                                    ? null : user.getEmployeeProfiles().get(0).getName())
+                            .isActive(user.getIsActive())
+                            .createdAt(user.getCreatedAt())
+                            .lastLoginAt(lastLoginAt)
+                            .memberships(membershipDTOs)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return new PaginatedResponse<>(
+                content,
+                membershipsPage.getNumber(),
+                membershipsPage.getSize(),
+                membershipsPage.getTotalElements(),
+                membershipsPage.getTotalPages(),
+                membershipsPage.isLast()
+        );
     }
 
 

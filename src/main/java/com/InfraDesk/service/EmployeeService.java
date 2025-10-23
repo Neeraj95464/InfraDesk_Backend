@@ -1,5 +1,6 @@
 package com.InfraDesk.service;
 
+import com.InfraDesk.dto.EmployeeFilterRequest;
 import com.InfraDesk.dto.EmployeeRequestDTO;
 import com.InfraDesk.dto.EmployeeResponseDTO;
 import com.InfraDesk.dto.PaginatedResponse;
@@ -9,6 +10,7 @@ import com.InfraDesk.exception.BusinessException;
 import com.InfraDesk.exception.NotFoundException;
 import com.InfraDesk.mapper.EmployeeMapper;
 import com.InfraDesk.repository.*;
+import com.InfraDesk.specification.EmployeeSpecification;
 import com.InfraDesk.util.AuthUtils;
 import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
@@ -16,9 +18,7 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -478,4 +478,19 @@ public class EmployeeService {
             return errors;
         }
     }
+
+    public Page<EmployeeResponseDTO> filterEmployees(EmployeeFilterRequest req, String companyId, int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        var spec = EmployeeSpecification.filter(req, companyId);
+
+        Page<Employee> result = employeeRepository.findAll(spec, pageable);
+
+        List<EmployeeResponseDTO> employees = result.getContent()
+                .stream()
+                .map(EmployeeMapper::toDTO)
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(employees, pageable, result.getTotalElements());
+    }
+
 }

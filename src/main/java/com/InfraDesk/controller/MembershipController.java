@@ -1,14 +1,13 @@
 package com.InfraDesk.controller;
 
-import com.InfraDesk.dto.MembershipAssignRequest;
-import com.InfraDesk.dto.MembershipInfoDTO;
-import com.InfraDesk.dto.PaginatedResponse;
-import com.InfraDesk.dto.UserMembershipDTO;
+import com.InfraDesk.dto.*;
 import com.InfraDesk.entity.Membership;
 import com.InfraDesk.enums.Role;
 import com.InfraDesk.service.MembershipService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class MembershipController {
 
+    private static final Logger log = LoggerFactory.getLogger(MembershipController.class);
     private final MembershipService membershipService;
 
     @GetMapping("/company/{companyId}/users")
@@ -55,6 +55,16 @@ public class MembershipController {
         );
 
         return ResponseEntity.ok(membership);
+    }
+
+    @GetMapping("{companyId}/filter")
+    @PreAuthorize("@perm.check(#companyId, 'COMPANY_CONFIGURE')")
+    public PaginatedResponse<UserMembershipDTO> filterMemberships(
+            @ModelAttribute MembershipFilterRequest req,
+            @PathVariable String companyId
+    ) {
+
+        return membershipService.filterMemberships(req, companyId);
     }
 
 }

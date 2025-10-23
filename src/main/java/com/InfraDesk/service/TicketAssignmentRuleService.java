@@ -1,5 +1,3 @@
-
-
 package com.InfraDesk.service;
 
 import com.InfraDesk.dto.TicketAssignmentRuleDTO;
@@ -103,7 +101,6 @@ public class TicketAssignmentRuleService {
                 .orElseThrow(() -> new EntityNotFoundException("Company not found"));
         return ruleRepository.countByCompany(company);
     }
-
 
     /**
      * Delete a rule by ID

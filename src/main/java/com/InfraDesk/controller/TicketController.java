@@ -58,7 +58,6 @@ public class TicketController {
         return ResponseEntity.ok(importResult);
     }
 
-
     @GetMapping("/filter")
     @PreAuthorize("@perm.check(#companyId, 'TICKET_VIEW')")
     public PaginatedResponse<TicketDTO> filterTickets(
