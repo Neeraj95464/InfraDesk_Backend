@@ -32,6 +32,9 @@ public class AssetHistory {
     @Column(length = 1000)
     private String newValue;
 
+    @Column(length = 1000)
+    private String note;
+
     @Column(nullable = false)
     private String modifiedBy; // publicId of actor
 

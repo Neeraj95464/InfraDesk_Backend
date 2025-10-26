@@ -84,17 +84,6 @@ public class EmployeeController {
         return ResponseEntity.ok(importResult);
     }
 
-//    @PostMapping("{companyId}/filter")
-//    public ResponseEntity<Page<EmployeeResponseDTO>> filterEmployees(
-//            @PathVariable String companyId,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "10") int size,
-//            @RequestBody(required = false) EmployeeFilterRequest request) {
-//
-//        Page<EmployeeResponseDTO> result = employeeService.filterEmployees(request != null ? request : new EmployeeFilterRequest(), companyId, page, size);
-//        return ResponseEntity.ok(result);
-//    }
-
     @PostMapping("{companyId}/filter")
     public ResponseEntity<PaginatedResponse<EmployeeResponseDTO>> filterEmployees(
             @PathVariable String companyId,

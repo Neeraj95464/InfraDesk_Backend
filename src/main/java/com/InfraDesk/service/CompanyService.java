@@ -44,6 +44,7 @@ public class CompanyService {
     private final PermissionRepository permissionRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final CompanyMapper companyMapper;
+    private final CompanySettingsRepository companySettingsRepository;
 
     @Transactional
     public CompanyDTO registerCompany(CompanyRegistrationRequest request) {
@@ -421,18 +422,45 @@ public class CompanyService {
 //        return String.format("%s-%06d", code, seq);
 //    }
 
+//    @Transactional
+//    public String generateNextAssetTag(String companyId) {
+//        Company company = companyRepository.findByPublicIdForUpdate(companyId)
+//                .orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyId));
+//
+//        long seq = company.getAssetSequence() + 1;
+//        company.setAssetSequence(seq);
+//        // No need to explicitly save; will auto-flush on transaction commit
+//
+//        String code = (company.getShortCode() != null && !company.getShortCode().isBlank())
+//                ? company.getShortCode().toUpperCase()
+//                : company.getName().replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+//
+//        if (code.length() > 6) {
+//            code = code.substring(0, 6);
+//        }
+//
+//        return String.format("%s-%06d", code, seq);
+//    }
+
     @Transactional
     public String generateNextAssetTag(String companyId) {
         Company company = companyRepository.findByPublicIdForUpdate(companyId)
                 .orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyId));
 
+        // Increase and set asset sequence (for safe concurrency)
         long seq = company.getAssetSequence() + 1;
         company.setAssetSequence(seq);
-        // No need to explicitly save; will auto-flush on transaction commit
 
-        String code = (company.getShortCode() != null && !company.getShortCode().isBlank())
-                ? company.getShortCode().toUpperCase()
-                : company.getName().replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+        // Try to use company settings' short code first
+        Optional<CompanySettings> settingsOpt = companySettingsRepository.findByCompanyIdAndIsDeletedFalse(companyId);
+        String code = settingsOpt
+                .map(CompanySettings::getCompanyShortCode)
+                .filter(shortCode -> shortCode != null && !shortCode.isBlank())
+                .map(String::toUpperCase)
+                .orElseGet(() -> (company.getShortCode() != null && !company.getShortCode().isBlank())
+                        ? company.getShortCode().toUpperCase()
+                        : company.getName().replaceAll("[^A-Za-z0-9]", "").toUpperCase()
+                );
 
         if (code.length() > 6) {
             code = code.substring(0, 6);
@@ -440,6 +468,7 @@ public class CompanyService {
 
         return String.format("%s-%06d", code, seq);
     }
+
 
 
 }

@@ -37,6 +37,8 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
     @Query("SELECT c FROM Company c WHERE c.publicId = :publicId")
     Optional<Company> findByPublicIdForUpdate(@Param("publicId") String publicId);
 
+    Optional<Company> findByPublicIdAndIsDeletedFalse(String companyId);
+
 
 //    Optional<Object> findByIdForUpdate(Long companyId);
 }

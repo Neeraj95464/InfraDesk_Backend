@@ -1,48 +1,3 @@
-//package com.InfraDesk.controller;
-//
-//import com.InfraDesk.dto.AssetResponseDTO;
-//import com.InfraDesk.dto.CreateAssetDTO;
-//import com.InfraDesk.service.AssetService;
-//import lombok.RequiredArgsConstructor;
-//import org.springframework.http.ResponseEntity;
-//import org.springframework.security.access.prepost.PreAuthorize;
-//import org.springframework.web.bind.annotation.*;
-//import org.springframework.web.multipart.MultipartFile;
-//
-//import java.util.List;
-//
-//@RestController
-//@RequestMapping("/api/companies/{companyId}/assets")
-//@RequiredArgsConstructor
-//public class AssetController {
-//
-//    private final AssetService assetService;
-//
-//    @PostMapping
-//    @PreAuthorize("@perm.check(#companyId, 'ASSET_MANAGE')")
-//    public ResponseEntity<AssetResponseDTO> create(
-//            @PathVariable String companyId,
-//            @RequestPart("payload") CreateAssetDTO payload,
-//            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
-//        AssetResponseDTO dto = assetService.createAsset(companyId, payload, files);
-//        return ResponseEntity.ok(dto);
-//    }
-//
-//    @PutMapping("/{assetPublicId}")
-//    @PreAuthorize("@perm.check(#companyId, 'ASSET_MANAGE')")
-//    public ResponseEntity<AssetResponseDTO> update(
-//            @PathVariable String companyId,
-//            @PathVariable String assetPublicId,
-//            @RequestBody AssetResponseDTO payload) {
-//        AssetResponseDTO dto = assetService.updateAsset(companyId, assetPublicId, payload);
-//        return ResponseEntity.ok(dto);
-//    }
-//
-//
-//}
-//
-
-
 package com.InfraDesk.controller;
 
 import com.InfraDesk.dto.AssetFilterRequest;
@@ -109,15 +64,5 @@ public class AssetController {
         return ResponseEntity.noContent().build();
     }
 
-    // GET single asset by publicId
-//    @GetMapping("/{assetPublicId}")
-//    @PreAuthorize("@perm.check(#companyId, 'ASSET_VIEW')")
-//    public ResponseEntity<AssetResponseDTO> getOne(
-//            @PathVariable String companyId,
-//            @PathVariable String assetPublicId
-//    ) {
-//        AssetResponseDTO dto = assetService.getAssetByPublicId(companyId, assetPublicId);
-//        return ResponseEntity.ok(dto);
-//    }
 }
 

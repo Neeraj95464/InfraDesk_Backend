@@ -1,5 +1,6 @@
 package com.InfraDesk.dto;
 
+import com.InfraDesk.entity.CompanyAssetType;
 import com.InfraDesk.enums.AssetStatus;
 import com.InfraDesk.enums.AssetType;
 import lombok.*;
@@ -17,7 +18,7 @@ public class CreateAssetDTO {
     private String brand;
     private String model;
     private String note;
-    private AssetType assetType;
+    private String assetType;
     private BigDecimal cost;
     private String locationId;
     private String siteId;

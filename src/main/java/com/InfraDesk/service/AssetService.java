@@ -28,6 +28,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,6 +44,7 @@ public class AssetService {
     private final CompanyService companyService;
     private final AssetMapper assetMapper;
     private final AuthUtils authUtils;
+    private final CompanyAssetTypeRepository companyAssetTypeRepository;
     private final LocationRepository locationRepository;
     private final SiteRepository siteRepository;
     private final FileStorageService fileStorageService;
@@ -75,12 +77,16 @@ public class AssetService {
             parent = assetRepository.findById(dto.getParentAssetId())
                     .orElseThrow(() -> new IllegalArgumentException("Parent asset not found"));
         }
-
         Employee assignee = null;
         if (dto.getAssigneeEmployeeId() != null) {
             assignee = employeeRepository.findById(dto.getAssigneeEmployeeId())
                     .orElseThrow(() -> new IllegalArgumentException("Assignee not found"));
         }
+        Optional<CompanyAssetType> assetTypeOpt = companyAssetTypeRepository.findByCompanyIdAndTypeName(companyId, dto.getAssetType());
+
+        CompanyAssetType assetType = assetTypeOpt.orElseThrow(() ->
+                new BusinessException("Asset type '" + dto.getAssetType() + "' not found for company " + companyId)
+        );
 
         Asset asset = Asset.builder()
                 .name(dto.getName())
@@ -89,7 +95,8 @@ public class AssetService {
                 .brand(dto.getBrand())
                 .model(dto.getModel())
                 .note(dto.getNote())
-                .assetType(dto.getAssetType())
+//                .assetType(dto.getAssetType())
+                .assetType(assetType)
                 .cost(dto.getCost())
                 .description(dto.getDescription())
                 .company(company)
@@ -255,10 +262,58 @@ public class AssetService {
             asset.setAssetType(asset.getAssetType());
         }
         // status
+//        if (dto.getStatus() != null && !dto.getStatus().equals(asset.getStatus())) {
+//            changes.add(buildHistory(asset, "status", asset.getStatus(), dto.getStatus(), actorPublicId));
+//            asset.setStatus(dto.getStatus());
+//        }
+
+        // --- STATUS SPECIAL LOGIC ---
         if (dto.getStatus() != null && !dto.getStatus().equals(asset.getStatus())) {
-            changes.add(buildHistory(asset, "status", asset.getStatus(), dto.getStatus(), actorPublicId));
-            asset.setStatus(dto.getStatus());
+            // Validate note present for status change
+            if (dto.getNote() == null || dto.getNote().trim().isEmpty()) {
+                throw new BusinessException("Note is required for status changes");
+            }
+
+            AssetStatus newStatus = dto.getStatus();
+
+            // Business rules per status
+            switch (newStatus) {
+                case AVAILABLE:
+                    // When making available:
+                    // - Assignee must be cleared
+                    // - Note must be present (already checked above)
+                    if (asset.getAssignee() != null) {
+                        changes.add(buildHistory(asset, "assigneeEmployeeId",
+                                asset.getAssignee().getPublicId(), null, actorPublicId));
+                        asset.setAssignee(null);
+                    }
+                    break;
+
+                case CHECKED_OUT:
+                    // When checking out:
+                    // - Assignee must be set (required)
+                    if (dto.getAssigneeEmployeeId() == null) {
+                        throw new BusinessException("Assignee is required when checking out");
+                    }
+                    break;
+
+                case IN_REPAIR:
+                case DAMAGED:
+                case DISPOSED:
+                case LOST:
+                    // For these statuses, note is mandatory (checked above)
+                    // No additional assignee logic here
+                    break;
+
+                default:
+                    throw new IllegalArgumentException("Unsupported asset status: " + newStatus);
+            }
+
+            changes.add(buildHistory(asset, "status", asset.getStatus(), newStatus, actorPublicId));
+            changes.add(buildHistory(asset, "note", asset.getNote(), dto.getNote(), actorPublicId));
+            asset.setStatus(newStatus);
         }
+
         // parent asset
         if (dto.getParentAssetId() != null) {
             String old = asset.getParentAsset() != null ? asset.getParentAsset().getPublicId() : null;

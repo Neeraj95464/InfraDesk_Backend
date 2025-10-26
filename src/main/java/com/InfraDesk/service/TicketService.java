@@ -58,6 +58,7 @@ public class TicketService {
     private final OutboundMailService outboundMailService;
     private final EmployeeService employeeService;
     private final AuthUtils authUtils;
+    private final CompanySettingsRepository companySettingsRepository;
     private final TicketMessageHelper ticketMessageHelper;
 
     /**
@@ -93,6 +94,14 @@ public class TicketService {
                 .orElseThrow(() -> new IllegalArgumentException("Location not found"))
                 : null;
 
+        Optional<CompanySettings> companySettings= companySettingsRepository.findByCompanyIdAndIsDeletedFalse(companyId);
+
+        int companyDefaultDueDuration = companySettings
+                .map(CompanySettings::getTicketDefaultDueDays)
+                .orElse(3);  // If not present, use 3 as default
+
+        LocalDateTime slaDueDate = LocalDateTime.now().plusDays(companyDefaultDueDuration);
+
         TicketType ticketType = ticketTypeRepository
                 .findByPublicIdAndCompany_PublicId(req.getTicketTypeId(), companyId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid ticketType"));
@@ -110,6 +119,7 @@ public class TicketService {
                 .seq(seq)
                 .publicId(publicId)
                 .company(company)
+                .slaDueDate(slaDueDate)
                 .department(department)
                 .location(location)
                 .subject(req.getSubject())

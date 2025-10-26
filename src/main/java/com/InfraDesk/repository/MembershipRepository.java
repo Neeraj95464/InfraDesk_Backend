@@ -28,8 +28,6 @@ public interface MembershipRepository extends JpaRepository<Membership,Long> , J
 
     Page<Membership> findByUserIdAndIsActiveTrue(Long userId, Pageable pageable);
 
-    // Finds active companies for a user with pagination via memberships relationship
-
     Page<Membership> findByUser_IdAndIsActiveTrue(Long userId, Pageable pageable);
 
     @Query("SELECT DISTINCT m.user FROM Membership m " +

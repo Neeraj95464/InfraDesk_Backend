@@ -52,8 +52,6 @@ public class EmployeeService {
     private final TransactionTemplate transactionTemplate;
     private final Validator validator;
 
-
-
     public void createEmployeeWithUser(String companyId, EmployeeRequestDTO dto) {
 
         User authUser = authUtils.getAuthenticatedUser()
@@ -149,7 +147,6 @@ public class EmployeeService {
         }
     }
 
-
     public void saveEmployee(Employee employee) {
         Set<ConstraintViolation<Employee>> violations = validator.validate(employee);
         if (!violations.isEmpty()) {
@@ -236,9 +233,6 @@ public class EmployeeService {
         }
         return user;
     }
-
-
-
 
     public PaginatedResponse<EmployeeResponseDTO> getAllEmployees(String companyId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
