@@ -701,9 +701,9 @@ public class TicketService {
             );
 
             if (mailIntegration.getProvider().equals("GMAIL")) {
-                outboundMailService.sendGmailMessage(mailIntegration, t, toEmails, ccEmails, subject, htmlBody);
+                outboundMailService.sendGmailMessage(mailIntegration, t, toEmails, null, subject, htmlBody);
             } else {
-                outboundMailService.sendViaGraph(mailIntegration, t, toEmails, ccEmails, subject, htmlBody);
+                outboundMailService.sendViaGraph(mailIntegration, t, toEmails, null, subject, htmlBody);
             }
 
             log.info("Ticket resolved notification email sent for ticket {}", t.getPublicId());
