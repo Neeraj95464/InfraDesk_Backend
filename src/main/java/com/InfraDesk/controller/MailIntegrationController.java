@@ -4,6 +4,8 @@ import com.InfraDesk.dto.MailIntegrationResponseDTO;
 import com.InfraDesk.dto.PaginatedResponse;
 import com.InfraDesk.service.MailIntegrationService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/companies/{companyId}/mail-configs")
 public class MailIntegrationController {
 
+    private static final Logger log = LoggerFactory.getLogger(MailIntegrationController.class);
     private final MailIntegrationService mailIntegrationService;
 
     @GetMapping

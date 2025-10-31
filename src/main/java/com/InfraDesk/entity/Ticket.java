@@ -86,6 +86,9 @@ public class Ticket {
             inverseJoinColumns = @JoinColumn(name = "user_id"))
     private Set<User> ccUsers = new HashSet<>();
 
+    @OneToOne(mappedBy = "ticket", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
+    private TicketFeedback feedback;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

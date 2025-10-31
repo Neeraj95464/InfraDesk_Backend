@@ -12,6 +12,8 @@ import com.InfraDesk.exception.BusinessException;
 import com.InfraDesk.repository.*;
 import com.InfraDesk.util.AuthUtils;
 import jakarta.transaction.Transactional;//package com.InfraDesk.service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,6 +37,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AssetService {
 
+    private static final Logger log = LoggerFactory.getLogger(AssetService.class);
     private final AssetRepository assetRepository;
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
@@ -168,6 +171,8 @@ public class AssetService {
 
     @Transactional
     public AssetResponseDTO updateAsset(String companyId, String assetPublicId,  AssetResponseDTO dto) {
+//        log.info("dto was {}",dto.getAssigneeEmployeeId());
+
         // 1. Find and validate asset and company
         String actorPublicId = authUtils.getAuthenticatedUser()
                 .map(User::getPublicId)  // get email if present
@@ -328,7 +333,8 @@ public class AssetService {
         if (dto.getAssigneeEmployeeId() != null) {
             String old = asset.getAssignee() != null ? asset.getAssignee().getPublicId() : null;
             if (!dto.getAssigneeEmployeeId().equals(old)) {
-                Employee newAssignee = employeeRepository.findByPublicId(dto.getAssigneeEmployeeId())
+                Employee newAssignee = employeeRepository
+                        .findByEmployeeIdAndCompany_PublicId(dto.getAssigneeEmployeeId(),companyId)
                         .orElseThrow(() -> new IllegalArgumentException("Assignee not found"));
                 changes.add(buildHistory(asset, "assigneeEmployeeId", old, dto.getAssigneeEmployeeId(), actorPublicId));
                 asset.setAssignee(newAssignee);

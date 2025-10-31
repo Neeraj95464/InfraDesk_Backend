@@ -34,7 +34,7 @@ public class TicketAnalyticsController {
             @Parameter(description = "Department filter (optional)")
             @RequestParam(required = false) String department
     ) {
-        log.info("Fetching comprehensive analytics for company: {} {} {} ", department,dateRange,companyId);
+//        log.info("Fetching comprehensive analytics for company: {} {} {} ", department,dateRange,companyId);
         TicketAnalyticsResponse response = analyticsService.getComprehensiveAnalytics(companyId, dateRange, department);
         return ResponseEntity.ok(response);
     }

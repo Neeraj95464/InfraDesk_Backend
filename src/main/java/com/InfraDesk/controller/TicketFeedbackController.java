@@ -1,41 +1,29 @@
 package com.InfraDesk.controller;
 
-import com.InfraDesk.dto.TicketFeedbackRequest;
-import com.InfraDesk.dto.TicketFeedbackResponse;
+import com.InfraDesk.dto.FeedbackFilterRequest;
+import com.InfraDesk.dto.PaginatedResponse;
+import com.InfraDesk.dto.TicketFeedbackDTO;
 import com.InfraDesk.entity.TicketFeedback;
 import com.InfraDesk.service.TicketFeedbackService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
 public class TicketFeedbackController {
+    private static final Logger log = LoggerFactory.getLogger(TicketFeedbackController.class);
     private final TicketFeedbackService feedbackService;
 
     @GetMapping("/test")
     public ResponseEntity<String> test(){
         return ResponseEntity.ok("Your request received ");
     }
-
-//    @PostMapping("/{ticketId}/feedback")
-//    public ResponseEntity<TicketFeedbackResponse> submitFeedback(
-//            @PathVariable String ticketId,
-//            @RequestBody TicketFeedbackRequest request
-//    ) {
-//        // Simple validations
-//        if (request.getStars() == null || request.getStars() < 1 || request.getStars() > 5) {
-//            throw new IllegalArgumentException("Stars must be between 1 and 5");
-//        }
-//        TicketFeedback feedback = feedbackService.submitFeedback(ticketId, request);
-//        TicketFeedbackResponse response = new TicketFeedbackResponse();
-//        response.setId(feedback.getId());
-//        response.setStars(feedback.getStars());
-//        response.setFeedbackText(feedback.getFeedbackText());
-//        response.setSubmittedAt(feedback.getSubmittedAt());
-//        return ResponseEntity.ok(response);
-//    }
 
     // Accept GET for star rating (from email link)
     @GetMapping("/{ticketId}/feedback")
@@ -81,6 +69,41 @@ public class TicketFeedbackController {
         }
         feedbackService.saveOrUpdateFeedback(ticketId, stars, feedbackText);
         return ResponseEntity.ok("<html><body><h3>Thank you for your feedback!</h3></body></html>");
+    }
+
+    @GetMapping("{companyId}/filter")
+    @PreAuthorize("@perm.check(#companyId, 'TICKET_MANAGE')")
+    public ResponseEntity<?> getFilteredFeedbacks(
+            @PathVariable String companyId,
+            @RequestParam(required = false) String assigneeUserId,
+            @RequestParam(required = false) Integer stars,
+            @RequestParam(required = false) String fromDate,   // ISO datetime string expected, parse in code
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "submittedAt") String sortBy,
+            @RequestParam(defaultValue = "true") boolean descending
+    ) {
+
+//        log.info("Request received for feedback {}",companyId);
+        FeedbackFilterRequest filterRequest = FeedbackFilterRequest.builder()
+                .assigneeUserId(assigneeUserId)
+                .stars(stars)
+                .keyword(keyword)
+                .build();
+
+        // You will need to parse fromDate and toDate strings to LocalDateTime if provided
+        if (fromDate != null && !fromDate.isEmpty()) {
+            filterRequest.setFromDate(java.time.LocalDateTime.parse(fromDate));
+        }
+        if (toDate != null && !toDate.isEmpty()) {
+            filterRequest.setToDate(java.time.LocalDateTime.parse(toDate));
+        }
+
+        PaginatedResponse<TicketFeedbackDTO> pageResult = feedbackService.getFilteredFeedbacks(companyId, filterRequest, page, size, sortBy, descending);
+
+        return ResponseEntity.ok(pageResult);
     }
 }
 

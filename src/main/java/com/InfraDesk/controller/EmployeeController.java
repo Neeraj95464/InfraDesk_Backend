@@ -91,8 +91,6 @@ public class EmployeeController {
             @RequestParam(defaultValue = "10") int size,
             @RequestBody(required = false) EmployeeFilterRequest request) {
 
-//        log.info("request was {} ",request);
-
         Page<EmployeeResponseDTO> result = employeeService.filterEmployees(
                 request != null ? request : new EmployeeFilterRequest(),
                 companyId,

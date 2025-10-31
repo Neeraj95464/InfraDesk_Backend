@@ -181,6 +181,7 @@ public class MailAuthController {
                             .tokenExpiresAt(Instant.now().plusSeconds(expiresIn))
                             .scopes("gmail.modify,gmail.send")
                             .enabled(true)
+                            .isDeleted(false)
                             .createdAt(Instant.now())
                             .build();
                 }
@@ -248,7 +249,7 @@ public class MailAuthController {
                         .tokenExpiresAt(Instant.now().plusSeconds(expiresIn))
                         .scopes("Mail.ReadWrite,Mail.Send")
                         .enabled(true)
-
+                        .isDeleted(false)
                         .createdAt(Instant.now())
                         .build();
             }

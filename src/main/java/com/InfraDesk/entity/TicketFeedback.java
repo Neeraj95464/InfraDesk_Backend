@@ -1,5 +1,6 @@
 package com.InfraDesk.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -15,8 +16,13 @@ public class TicketFeedback {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ticket_id", nullable = false)
+//    @JsonBackReference
+//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+//    @JoinColumn(name = "ticket_id", nullable = false)
+//    private Ticket ticket;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ticket_id", nullable = false, unique = true)
     private Ticket ticket;
 
     @Column(nullable = false)

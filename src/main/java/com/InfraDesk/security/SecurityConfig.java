@@ -73,7 +73,8 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "https://ynmio.netlify.app",
                 "https://infradesk.duckdns.org",
-                "https://infradesk.duckdns.org:7355"
+                "https://infradesk.duckdns.org:7355",
+                "https://infradeskai.netlify.app"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
