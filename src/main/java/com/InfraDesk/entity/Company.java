@@ -39,9 +39,12 @@ public class Company {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Builder.Default
-    @Column(nullable = false, unique = true, updatable = false, length = 50)
-    private String publicId = generatePublicId();
+//    @Builder.Default
+//    @Column(nullable = false, unique = true, updatable = false, length = 50)
+//    private String publicId = generatePublicId();
+
+    @Column(name = "public_id", nullable = false, updatable = false, unique = true, length = 50)
+    private String publicId;
 
     /** Public-facing / display name */
     @Column(nullable = false, unique = true, length = 100)
@@ -133,8 +136,23 @@ public class Company {
     @Column(nullable = false)
     private Boolean isDeleted = false;
 
-    private static String generatePublicId() {
-        return "COM-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+//    private static String generatePublicId() {
+//        return "COM-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+//    }
+
+    private static final String PUBLIC_ID_PREFIX = "COM-";
+    private static final int PUBLIC_ID_LENGTH = 12;
+
+    @PrePersist
+    protected void onCreate() {
+        if (publicId == null || publicId.isEmpty()) {
+            publicId = PUBLIC_ID_PREFIX + UUID.randomUUID().toString().replace("-", "").substring(0, PUBLIC_ID_LENGTH).toUpperCase();
+        }
+        createdAt = LocalDateTime.now();
+        updatedAt = createdAt;
+        if (isDeleted == null) {
+            isDeleted = false;
+        }
     }
 
         /**

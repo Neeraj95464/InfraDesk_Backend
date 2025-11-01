@@ -30,9 +30,8 @@ public class Membership {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Builder.Default
     @Column(nullable = false, unique = true, updatable = false, length = 50)
-    private String publicId = generatePublicId();
+    private String publicId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, updatable = false)
@@ -68,7 +67,22 @@ public class Membership {
     @Column(nullable = false)
     private Boolean isDeleted = false;
 
-    private static String generatePublicId() {
-        return "MEM-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+//    private static String generatePublicId() {
+//        return "MEM-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+//    }
+
+    private static final String PUBLIC_ID_PREFIX = "MEM-";
+    private static final int PUBLIC_ID_LENGTH = 12;
+
+    @PrePersist
+    protected void onCreate() {
+        if (publicId == null || publicId.isEmpty()) {
+            publicId = PUBLIC_ID_PREFIX + UUID.randomUUID().toString().replace("-", "").substring(0, PUBLIC_ID_LENGTH).toUpperCase();
+        }
+        createdAt = LocalDateTime.now();
+        updatedAt = createdAt;
+        if (isDeleted == null) {
+            isDeleted = false;
+        }
     }
 }

@@ -120,6 +120,8 @@ public class CompanyService {
         // Create default admin (User + Employee + Department + Membership)
         User user = createDefaultAdminUser(request, company, email, assignedRole);
 
+
+
         Department defaultDepartment = departmentRepository.findByNameAndCompanyAndIsDeletedFalse("IT",company)
                 .orElseThrow(()->new BusinessException("Default Department not found"));
 
@@ -218,6 +220,26 @@ public class CompanyService {
                 .createdAt(LocalDateTime.now())
                 .build()
         );
+
+        if (company != null && company.getParentCompany() != null) {
+            User parentCompanyUser = authUtils.getAuthenticatedUser().orElseThrow(
+                    () -> new BusinessException("Auth user not found")
+            );
+            if (role == null) {
+                throw new BusinessException("Role must not be null");
+            }
+            Membership membership = Membership.builder()
+                    .user(parentCompanyUser)
+                    .company(company)
+                    .role(role)
+                    .isActive(true)
+                    .isDeleted(false)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            membershipRepository.save(membership);
+        }
+
 
         // 2. Assign default role-permissions
         DefaultRolePermissions.MAP.forEach((defaultRole, codes) -> {
@@ -379,8 +401,8 @@ public class CompanyService {
 
 
     @Transactional
-    public void deleteCompany(Long companyId) {
-        Company company = companyRepository.findById(companyId)
+    public void deleteCompany(String companyId) {
+        Company company = companyRepository.findByPublicId(companyId)
                 .orElseThrow(() -> new EntityNotFoundException("Company not found"));
 
         company.softDelete();

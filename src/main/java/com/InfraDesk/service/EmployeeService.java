@@ -271,6 +271,7 @@ public class EmployeeService {
 
         employee.setName(dto.getName());
         employee.setPhone(dto.getPhone());
+        employee.setEmployeeId(dto.getEmployeeId());
         employee.setDesignation(dto.getDesignation());
         // If you have role field on employee, update it here
 

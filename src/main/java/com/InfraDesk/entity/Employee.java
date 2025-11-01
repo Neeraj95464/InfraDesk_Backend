@@ -35,14 +35,12 @@ import java.util.UUID;
 @EqualsAndHashCode(of = "id")
 public class Employee {
 
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Builder.Default
     @Column(nullable = false, unique = true, updatable = false, length = 50)
-    private String publicId = generatePublicId();
+    private String publicId;
 
     @NotBlank(message = "Employee ID cannot be blank")
     @Size(max = 50, message = "Employee ID must be at most 50 characters")
@@ -99,8 +97,23 @@ public class Employee {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    private static String generatePublicId() {
-        return "EMP-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+//    private static String generatePublicId() {
+//        return "EMP-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+//    }
+
+    private static final String PUBLIC_ID_PREFIX = "EMP-";
+    private static final int PUBLIC_ID_LENGTH = 12;
+
+    @PrePersist
+    protected void onCreate() {
+        if (publicId == null || publicId.isEmpty()) {
+            publicId = PUBLIC_ID_PREFIX + UUID.randomUUID().toString().replace("-", "").substring(0, PUBLIC_ID_LENGTH).toUpperCase();
+        }
+        createdAt = LocalDateTime.now();
+        updatedAt = createdAt;
+        if (isDeleted == null) {
+            isDeleted = false;
+        }
     }
 
 }

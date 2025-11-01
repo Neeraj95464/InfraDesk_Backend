@@ -109,10 +109,21 @@ public class TicketService {
         // 3) Allocate ticket sequence (company + department scoped)
         Long seq = ticketNumberService.nextSeq(companyId, req.getDepartmentId());
 
+////        String domainSlug = slugifyDomain(company.getDomain(), 10);
+////        String deptSlug = (department != null) ? slugify(department.getName(), 5) : "GEN";
+////        String publicId = String.format("%s-%05d", deptSlug, seq);
+//
 //        String domainSlug = slugifyDomain(company.getDomain(), 10);
-        String deptSlug = (department != null) ? slugify(department.getName(), 5) : "GEN";
-        String publicId = String.format("%s-%05d", deptSlug, seq);
+//        String deptSlug = (department != null) ? slugify(department.getName(), 5) : domainSlug;
+//        String publicId = String.format("%s-%05d", deptSlug, seq);
 
+        String domainSlug = slugifyDomain(company.getDomain(), 10);
+        String deptSlug = (department != null) ? slugify(department.getName(), 5) : "GEN";
+//        String publicId = String.format("%s-%05d", deptSlug, seq);
+
+//        String domainSlug = slugifyDomain(company.getDomain(), 10);
+//        String deptSlug = (department != null) ? slugify(department.getName(), 5) : domainSlug;
+        String publicId = String.format("%s%s-%05d",domainSlug, deptSlug, seq);
 
         // 5) Create Ticket entity
         Ticket t = Ticket.builder()

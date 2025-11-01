@@ -27,6 +27,7 @@ public class CompanySettingsService {
         CompanySettings settings = settingsRepository.findByCompanyIdAndIsDeletedFalse(companyId)
                 .orElse(CompanySettings.builder().companyId(companyId).build());
 
+
         settings.setTicketDefaultDueDays(dto.getTicketDefaultDueDays());
         settings.setCompanyShortCode(dto.getCompanyShortCode());
         settings.setAssetTagRequired(dto.getAssetTagRequired());
@@ -34,6 +35,8 @@ public class CompanySettingsService {
         settings.setIsDeleted(false);
 
         CompanySettings saved = settingsRepository.save(settings);
+        company.setShortCode(dto.getCompanyShortCode());
+        companyRepository.save(company);
         return toDTO(saved);
     }
 

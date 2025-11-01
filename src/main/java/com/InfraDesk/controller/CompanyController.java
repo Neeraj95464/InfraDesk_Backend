@@ -85,9 +85,8 @@ public class CompanyController {
 
     // Soft delete company with permission check
     @DeleteMapping("/{companyId}")
-//    @PreAuthorize("@perm.check(#companyId.toString(), 'CAN_CONFIGURE_COMPANY')")
-    @PreAuthorize("@perm.check(#companyId.toString(), T(com.InfraDesk.enums.PermissionCode).COMPANY_CONFIGURE)")
-    public ResponseEntity<String> softDeleteCompany(@PathVariable Long companyId) {
+    @PreAuthorize("@perm.check(#companyId, 'ASSET_MANAGE')")
+    public ResponseEntity<String> softDeleteCompany(@PathVariable String companyId) {
         companyService.deleteCompany(companyId);
         return ResponseEntity.ok("Company soft-deleted successfully");
     }

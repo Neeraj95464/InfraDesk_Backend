@@ -34,7 +34,7 @@ public class Asset {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "public_id", nullable = false, updatable = false, unique = true, length = 40)
+    @Column(name = "public_id", nullable = false, updatable = false, unique = true, length = 50)
     private String publicId;
 
     @Column(nullable = false, length = 200)
@@ -113,13 +113,28 @@ public class Asset {
     @Column(nullable = false)
     private Boolean isDeleted = false;
 
+//    @PrePersist
+//    protected void onCreate() {
+//        if (publicId == null)
+//            publicId = "AST-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+//        createdAt = LocalDateTime.now();
+//        updatedAt = createdAt;
+//        isDeleted = false;
+//    }
+
+    private static final String PUBLIC_ID_PREFIX = "AST-";
+    private static final int PUBLIC_ID_LENGTH = 12;
+
     @PrePersist
     protected void onCreate() {
-        if (publicId == null)
-            publicId = "AST-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+        if (publicId == null || publicId.isEmpty()) {
+            publicId = PUBLIC_ID_PREFIX + UUID.randomUUID().toString().replace("-", "").substring(0, PUBLIC_ID_LENGTH).toUpperCase();
+        }
         createdAt = LocalDateTime.now();
         updatedAt = createdAt;
-        isDeleted = false;
+        if (isDeleted == null) {
+            isDeleted = false;
+        }
     }
 
     @PreUpdate
